@@ -1,0 +1,50 @@
+Arguments: 
+  /Users/jiahui.cui/.nvm/versions/node/v16.19.0/bin/node /opt/homebrew/Cellar/yarn/1.22.19/libexec/bin/yarn.js
+
+PATH: 
+  /Applications/google-cloud-sdk/bin:/Users/jiahui.cui/.nvm/versions/node/v16.19.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/google-cloud-sdk/bin:/Users/jiahui.cui/.nvm/versions/node/v16.19.0/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/jiahui.cui/.cargo/bin:/Users/jiahui.cui/.foundry/bin:/Users/jiahui.cui/.foundry/bin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  16.19.0
+
+Platform: 
+  darwin arm64
+
+Trace: 
+  SyntaxError: /Users/jiahui.cui/Projects/doublespending/MEVBoostAA/package.json: Unexpected token } in JSON at position 509
+      at JSON.parse (<anonymous>)
+      at /opt/homebrew/Cellar/yarn/1.22.19/libexec/lib/cli.js:1629:59
+      at Generator.next (<anonymous>)
+      at step (/opt/homebrew/Cellar/yarn/1.22.19/libexec/lib/cli.js:310:30)
+      at /opt/homebrew/Cellar/yarn/1.22.19/libexec/lib/cli.js:321:13
+
+npm manifest: 
+  {
+    "name": "mev-boost-aa",
+  
+    "scripts": {
+      "setup": "yarn install --frozen-lockfile",
+      "format": "prettier --write .",
+      "check-pretty": "prettier --check .",
+      "lint": "solhint \"contracts/**/*.sol\"",
+      "compile": "forge build --force",
+      "test-foundry-local": "DEPLOYED=false forge test --no-match-path 'test/forkMainnet/*.t.sol'",
+      "test-foundry-fork": "DEPLOYED=false forge test --fork-url $MAINNET_NODE_RPC_URL --fork-block-number 16075500 --match-path 'test/forkMainnet/*.t.sol'",
+    },
+    "devDependencies": {
+      "prettier": "^2.6.2",
+      "prettier-plugin-solidity": "^1.0.0-beta.19",
+      "solhint": "^3.3.7",
+      "solhint-plugin-prettier": "^0.0.5"
+    },
+    "dependencies": {}
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
