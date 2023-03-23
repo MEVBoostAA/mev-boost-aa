@@ -11,7 +11,7 @@ import {_packValidationData} from "./libraries/ValidationData.sol";
 import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
 import {IMEVAccount} from "./interfaces/IMEVAccount.sol";
 
-abstract contract MEVPaymaster is IMEVPaymaster, Ownable {
+contract MEVPaymaster is IMEVPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperation for UserOperation;
     uint256 internal constant SIG_VALIDATION_FAILED = 1;

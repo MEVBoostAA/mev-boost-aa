@@ -14,8 +14,8 @@
     "check-pretty": "prettier --check .",
     "lint": "solhint \"contracts/**/*.sol\"",
     "compile": "forge build --force",
-    "test-foundry-local": "DEPLOYED=false forge test --no-match-path 'test/forkMainnet/*.t.sol'",
-    "test-foundry-fork": "DEPLOYED=false forge test --fork-url $MAINNET_NODE_RPC_URL --fork-block-number 16075500 --match-path 'test/forkMainnet/*.t.sol'"
+    "test-foundry-local": "forge test --no-match-path 'test/forkMainnet/*.t.sol'",
+    "test-foundry-fork": "forge test --fork-url $MAINNET_NODE_RPC_URL --fork-block-number 16776718 --match-path 'test/forkMainnet/*.t.sol'"
   },
   "devDependencies": {
     "prettier": "^2.6.2",
