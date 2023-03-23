@@ -42,5 +42,7 @@ interface IMEVPaymaster is IPaymaster {
         uint256 amount
     ) external;
 
+    function fetchLegacy() external returns (uint256 legacy);
+
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

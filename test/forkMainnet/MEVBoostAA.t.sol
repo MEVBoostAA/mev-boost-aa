@@ -64,32 +64,17 @@ contract MEVBoostAATest is Test {
     }
 
     function testSelfSponsoredExpiredMEVAccount() public {
+        uint256 waitInterval = 0;
+        uint256 mevMinAmount = 10;
         uint256 amount = 1 ether;
-        UserOperation memory userOp = _buildUserOp(0, 10, amount);
+        UserOperation memory userOp = _buildUserOp(
+            waitInterval,
+            mevMinAmount,
+            amount
+        );
         UserOperation[] memory ops = new UserOperation[](1);
         ops[0] = userOp;
-
-        uint256 balanceOfReceiver = receiver.balance;
-        uint256 balanceOfFeeCollector = feeCollector.balance;
-        uint256 balanceOfMEVAccount = address(mevAccount).balance;
-        uint256 balanceOfEntryPoint = entryPointAddr.balance;
-        entryPoint.handleOps(ops, payable(feeCollector));
-        uint256 deltaOfReceiver = receiver.balance - balanceOfReceiver;
-        uint256 delatOfFeeCollector = feeCollector.balance -
-            balanceOfFeeCollector;
-        uint256 deltaOfMEVAccount = balanceOfMEVAccount -
-            address(mevAccount).balance;
-        uint256 deltaOfEntryPoint = entryPointAddr.balance -
-            balanceOfEntryPoint;
-        assertEq(deltaOfReceiver, amount);
-        assertEq(
-            deltaOfReceiver + delatOfFeeCollector + deltaOfEntryPoint,
-            deltaOfMEVAccount
-        );
-        uint256 mevAccountBalanceInEntryPoint = entryPoint.balanceOf(
-            address(mevAccount)
-        );
-        assertEq(mevAccountBalanceInEntryPoint, deltaOfEntryPoint);
+        _handleOpsAndCheckForSelfSponsoredTx(ops, amount);
     }
 
     function testSearcherSponsoredMEVAccount() public {
@@ -105,7 +90,14 @@ contract MEVBoostAATest is Test {
         _attachPaymasterAndData(userOp);
         UserOperation[] memory ops = new UserOperation[](1);
         ops[0] = userOp;
+        _handleOpsAndCheckForSearcherSponsoredTx(ops, mevMinAmount, amount);
+    }
 
+    function _handleOpsAndCheckForSearcherSponsoredTx(
+        UserOperation[] memory ops,
+        uint256 mevMinAmount,
+        uint256 transferAmount
+    ) internal {
         uint256 balanceOfSearcher = mevPaymaster.getDeposit(searcher);
         uint256 balanceOfReceiver = receiver.balance;
         uint256 balanceOfFeeCollector = feeCollector.balance;
@@ -123,8 +115,41 @@ contract MEVBoostAATest is Test {
             address(mevAccount)
         ) - mevOfMEVAccount;
         assertEq(deltaOfMEVAccount, deltaOfReceiver);
+        assertEq(deltaOfReceiver, transferAmount);
         assertEq(deltaMEVOfMEVAccount, mevMinAmount);
-        assertGt(deltaOfSearcher, delatOfFeeCollector + mevMinAmount);
+        uint256 legacyAmount = entryPoint.balanceOf(address(mevPaymaster)) -
+            mevPaymaster.liability();
+        assertEq(
+            deltaOfSearcher,
+            delatOfFeeCollector + deltaMEVOfMEVAccount + legacyAmount
+        );
+    }
+
+    function _handleOpsAndCheckForSelfSponsoredTx(
+        UserOperation[] memory ops,
+        uint256 transferAmount
+    ) internal {
+        uint256 balanceOfReceiver = receiver.balance;
+        uint256 balanceOfFeeCollector = feeCollector.balance;
+        uint256 balanceOfMEVAccount = address(mevAccount).balance;
+        uint256 balanceOfEntryPoint = entryPointAddr.balance;
+        entryPoint.handleOps(ops, payable(feeCollector));
+        uint256 deltaOfReceiver = receiver.balance - balanceOfReceiver;
+        uint256 delatOfFeeCollector = feeCollector.balance -
+            balanceOfFeeCollector;
+        uint256 deltaOfMEVAccount = balanceOfMEVAccount -
+            address(mevAccount).balance;
+        uint256 deltaOfEntryPoint = entryPointAddr.balance -
+            balanceOfEntryPoint;
+        assertEq(deltaOfReceiver, transferAmount);
+        assertEq(
+            deltaOfReceiver + delatOfFeeCollector + deltaOfEntryPoint,
+            deltaOfMEVAccount
+        );
+        uint256 mevAccountBalanceInEntryPoint = entryPoint.balanceOf(
+            address(mevAccount)
+        );
+        assertEq(mevAccountBalanceInEntryPoint, deltaOfEntryPoint);
     }
 
     function _buildUserOp(

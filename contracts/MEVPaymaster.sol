@@ -14,8 +14,10 @@ import {IMEVAccount} from "./interfaces/IMEVAccount.sol";
 contract MEVPaymaster is IMEVPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperation for UserOperation;
-    uint256 internal constant SIG_VALIDATION_FAILED = 1;
-    uint256 public constant GAS_OF_POST = 28805; // should update if opcode cost changes
+    uint256 private constant SIG_VALIDATION_FAILED = 1;
+    // must larger than real cost of postOP
+    uint256 public constant MAX_GAS_OF_POST = 35000;
+    uint256 public liability;
     IEntryPoint public immutable entryPoint;
     mapping(address => uint256) balances;
     mapping(bytes32 => MEVInfo) mevMapping;
@@ -56,7 +58,7 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         uint256 maxCost
     ) internal returns (bytes memory context, uint256 validationData) {
         require(
-            userOp.verificationGasLimit > GAS_OF_POST,
+            userOp.verificationGasLimit > MAX_GAS_OF_POST,
             "DepositPaymaster: gas too low for postOp"
         );
 
@@ -138,8 +140,9 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
             uint256 maxCost
         ) = abi.decode(context, (bytes32, uint256, uint256, uint256));
         uint256 gasPrice = _getGasPrice(maxFeePerGas, maxPriorityFeePerGas);
-        uint256 totalCost = actualGasCost + GAS_OF_POST * gasPrice;
+        uint256 totalCost = actualGasCost + MAX_GAS_OF_POST * gasPrice;
         MEVInfo memory mevInfo = mevMapping[userOpHash];
+        liability -= totalCost;
         balances[mevInfo.provider] += maxCost - totalCost;
         if (mevInfo.enable) {
             delete mevMapping[userOpHash];
@@ -188,6 +191,7 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
     }
 
     function deposit(address provider) external payable {
+        liability += msg.value;
         balances[provider] += msg.value;
         entryPoint.depositTo{value: msg.value}(address(this));
     }
@@ -196,8 +200,17 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         address payable withdrawAddress,
         uint256 amount
     ) external {
+        liability -= amount;
         balances[msg.sender] -= amount;
         entryPoint.withdrawTo(withdrawAddress, amount);
+    }
+
+    function fetchLegacy() external onlyOwner returns (uint256 legacy) {
+        uint256 asset = entryPoint.balanceOf(address(this));
+        require(asset > liability, "asset should greater than liability");
+        legacy = asset - liability;
+        liability = asset;
+        balances[owner()] += legacy;
     }
 
     function supportsInterface(
