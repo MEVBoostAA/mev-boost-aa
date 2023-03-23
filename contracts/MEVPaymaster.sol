@@ -27,6 +27,11 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         bool enable;
     }
 
+    modifier onlyEntryPoint() {
+        require(msg.sender == address(entryPoint), "Sender not EntryPoint");
+        _;
+    }
+
     constructor(IEntryPoint _entryPoint) {
         entryPoint = _entryPoint;
     }
@@ -36,8 +41,12 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         UserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 maxCost
-    ) external override returns (bytes memory context, uint256 validationData) {
-        _requireFromEntryPoint();
+    )
+        external
+        override
+        onlyEntryPoint
+        returns (bytes memory context, uint256 validationData)
+    {
         return _validatePaymasterUserOp(userOp, userOpHash, maxCost);
     }
 
@@ -113,8 +122,7 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         PostOpMode mode,
         bytes calldata context,
         uint256 actualGasCost
-    ) external override {
-        _requireFromEntryPoint();
+    ) external override onlyEntryPoint {
         _postOp(mode, context, actualGasCost);
     }
 
@@ -222,11 +230,6 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
      */
     function withdrawStake(address payable withdrawAddress) external onlyOwner {
         entryPoint.withdrawStake(withdrawAddress);
-    }
-
-    /// validate the call is made from a valid entrypoint
-    function _requireFromEntryPoint() internal virtual {
-        require(msg.sender == address(entryPoint), "Sender not EntryPoint");
     }
 
     function _internalMEVPayInfoHash(

@@ -47,9 +47,14 @@ contract MEVAccount is
         _;
     }
 
+    modifier onlyEntryPoint() {
+        require(msg.sender == address(_entryPoint), "Sender not EntryPoint");
+        _;
+    }
+
     modifier onlyEntryPointOrOwner() {
         require(
-            msg.sender == address(entryPoint()) || msg.sender == owner,
+            msg.sender == address(_entryPoint) || msg.sender == owner,
             "account: not Owner or EntryPoint"
         );
         _;
@@ -81,9 +86,9 @@ contract MEVAccount is
         external
         virtual
         override(IAccount, BaseAccount)
+        onlyEntryPoint
         returns (uint256 validationData)
     {
-        _requireFromEntryPoint();
         bytes4 selector = bytes4(userOp.callData);
         if (
             selector == this.boostExecuteBatch.selector ||
@@ -93,7 +98,7 @@ contract MEVAccount is
                 userOp.callData[4:],
                 (MEVConfig)
             );
-            bytes32 userBootOpHash = userOp.boostHash(entryPoint());
+            bytes32 userBootOpHash = userOp.boostHash(_entryPoint);
             validationData = _validateSignature(userOp, userBootOpHash);
             address paymaster = address(bytes20(userOp.paymasterAndData[:20]));
             if (validationData == 0 && paymaster != mevPaymaster) {
@@ -165,7 +170,7 @@ contract MEVAccount is
     function _initialize(address anOwner, address anMEVPaymaster) internal {
         owner = anOwner;
         mevPaymaster = anMEVPaymaster;
-        emit MEVAccountInitialized(entryPoint(), owner, mevPaymaster);
+        emit MEVAccountInitialized(_entryPoint, owner, mevPaymaster);
     }
 
     /// implement template method of BaseAccount
