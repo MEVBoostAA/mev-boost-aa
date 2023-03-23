@@ -36,7 +36,6 @@ library MEVUserOperation {
             keccak256(
                 abi.encode(
                     _internalUserBoostOpHash(userOp),
-                    address(this),
                     entryPoint,
                     block.chainid
                 )

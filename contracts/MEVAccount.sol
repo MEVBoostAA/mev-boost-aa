@@ -100,8 +100,7 @@ contract MEVAccount is
             );
             bytes32 userBootOpHash = userOp.boostHash(_entryPoint);
             validationData = _validateSignature(userOp, userBootOpHash);
-            address paymaster = address(bytes20(userOp.paymasterAndData[:20]));
-            if (validationData == 0 && paymaster != mevPaymaster) {
+            if (validationData == 0 && !_isMevPaymaster(userOp)) {
                 validationData = _packValidationData(
                     false,
                     0,
@@ -231,5 +230,13 @@ contract MEVAccount is
         for (uint256 i = 0; i < dest.length; i++) {
             _call(dest[i], 0, func[i]);
         }
+    }
+
+    function _isMevPaymaster(
+        UserOperation calldata userOp
+    ) internal view returns (bool) {
+        return
+            userOp.paymasterAndData.length >= 20 &&
+            address(bytes20(userOp.paymasterAndData[:20])) == mevPaymaster;
     }
 }
