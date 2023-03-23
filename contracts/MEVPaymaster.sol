@@ -15,7 +15,7 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperation for UserOperation;
     uint256 internal constant SIG_VALIDATION_FAILED = 1;
-    uint256 public constant GAS_OF_POST = 35000;
+    uint256 public constant GAS_OF_POST = 28805; // should update if opcode cost changes
     IEntryPoint public immutable entryPoint;
     mapping(address => uint256) balances;
     mapping(bytes32 => MEVInfo) mevMapping;
@@ -74,7 +74,7 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
             "provider balance not enough"
         );
         balances[mevPayInfo.provider] -= totalCost;
-        bytes32 mevPayInfoHash = _getMEVPayInfoHash(mevPayInfo);
+        bytes32 mevPayInfoHash = getMEVPayInfoHash(mevPayInfo);
         validationData = _validateSignature(mevPayInfo, mevPayInfoHash);
         bytes4 selector = bytes4(userOp.callData);
         if (
@@ -232,6 +232,20 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         entryPoint.withdrawStake(withdrawAddress);
     }
 
+    function getMEVPayInfoHash(
+        MEVPayInfo memory mevPayInfo
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    _internalMEVPayInfoHash(mevPayInfo),
+                    address(this),
+                    entryPoint,
+                    block.chainid
+                )
+            );
+    }
+
     function _internalMEVPayInfoHash(
         MEVPayInfo memory mevPayInfo
     ) internal pure returns (bytes32) {
@@ -241,20 +255,6 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
                     mevPayInfo.provider,
                     mevPayInfo.boostHash,
                     mevPayInfo.amount
-                )
-            );
-    }
-
-    function _getMEVPayInfoHash(
-        MEVPayInfo memory mevPayInfo
-    ) internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _internalMEVPayInfoHash(mevPayInfo),
-                    address(this),
-                    entryPoint,
-                    block.chainid
                 )
             );
     }

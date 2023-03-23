@@ -4,11 +4,11 @@ pragma solidity ^0.8.12;
 import {Test} from "forge-std/Test.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IEntryPoint} from "../../contracts/interfaces/IEntryPoint.sol";
-import {IMEVAccount} from "../../contracts/interfaces/IMEVAccount.sol";
 import {UserOperation} from "../../contracts/interfaces/UserOperation.sol";
 import {MEVUserOperation} from "../../contracts/libraries/MEVUserOperation.sol";
 import {MEVPaymaster} from "../../contracts/MEVPaymaster.sol";
 import {MEVAccount} from "../../contracts/MEVAccount.sol";
+import {IMEVAccount} from "../../contracts/interfaces/IMEVAccount.sol";
 import {MEVAccountFactory} from "../../contracts/MEVAccountFactory.sol";
 
 contract MEVBoostAATest is Test {
@@ -23,7 +23,8 @@ contract MEVBoostAATest is Test {
     MEVAccount public mevAccount;
     MEVAccountFactory public mevAcountFactory;
     MEVPaymaster public mevPaymaster;
-    address public searcher = makeAddr("searcher");
+    uint256 public constant searcherPrivateKey = uint256(2);
+    address public searcher = vm.addr(searcherPrivateKey);
     address public receiver = makeAddr("receiver");
     address public feeCollector = makeAddr("feeCollector");
     uint256 public constant salt = 1024;
@@ -63,35 +64,8 @@ contract MEVBoostAATest is Test {
     }
 
     function testSelfSponsoredExpiredMEVAccount() public {
-        IMEVAccount.MEVConfig memory mevConfig = IMEVAccount.MEVConfig({
-            minAmount: 10,
-            selfSponsoredAfter: uint48(block.timestamp) // block.timestamp >= selfSponsoredAfter is valid
-        });
-        uint256 amount = 0;
-        bytes memory callData = abi.encodeCall(
-            MEVAccount.boostExecute,
-            (mevConfig, receiver, amount, "")
-        );
-
-        UserOperation memory userOp = UserOperation({
-            sender: address(mevAccount),
-            nonce: 0,
-            initCode: "",
-            callData: callData,
-            callGasLimit: 500000,
-            verificationGasLimit: 500000,
-            preVerificationGas: 60000,
-            maxFeePerGas: 3000000000,
-            maxPriorityFeePerGas: 1500000000,
-            paymasterAndData: "",
-            signature: ""
-        });
-        bytes32 boostUserOpHash = userOp.boostHash(entryPoint);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            ownerPrivateKey,
-            boostUserOpHash.toEthSignedMessageHash()
-        );
-        userOp.signature = abi.encodePacked(r, s, v);
+        uint256 amount = 1 ether;
+        UserOperation memory userOp = _buildUserOp(0, 10, amount);
         UserOperation[] memory ops = new UserOperation[](1);
         ops[0] = userOp;
 
@@ -107,6 +81,7 @@ contract MEVBoostAATest is Test {
             address(mevAccount).balance;
         uint256 deltaOfEntryPoint = entryPointAddr.balance -
             balanceOfEntryPoint;
+        assertEq(deltaOfReceiver, amount);
         assertEq(
             deltaOfReceiver + delatOfFeeCollector + deltaOfEntryPoint,
             deltaOfMEVAccount
@@ -117,5 +92,98 @@ contract MEVBoostAATest is Test {
         assertEq(mevAccountBalanceInEntryPoint, deltaOfEntryPoint);
     }
 
-    function testSearcherSponsoredMEVAccount() public {}
+    function testSearcherSponsoredMEVAccount() public {
+        uint256 waitInterval = 1000;
+        uint256 mevMinAmount = 10;
+        uint256 amount = 1 ether;
+        UserOperation memory userOp = _buildUserOp(
+            waitInterval,
+            mevMinAmount,
+            amount
+        );
+        // paymaster can provide mev to make tx valid
+        _attachPaymasterAndData(userOp);
+        UserOperation[] memory ops = new UserOperation[](1);
+        ops[0] = userOp;
+
+        uint256 balanceOfSearcher = mevPaymaster.getDeposit(searcher);
+        uint256 balanceOfReceiver = receiver.balance;
+        uint256 balanceOfFeeCollector = feeCollector.balance;
+        uint256 balanceOfMEVAccount = address(mevAccount).balance;
+        uint256 mevOfMEVAccount = mevPaymaster.getDeposit(address(mevAccount));
+        entryPoint.handleOps(ops, payable(feeCollector));
+        uint256 deltaOfSearcher = balanceOfSearcher -
+            mevPaymaster.getDeposit(searcher);
+        uint256 deltaOfReceiver = receiver.balance - balanceOfReceiver;
+        uint256 delatOfFeeCollector = feeCollector.balance -
+            balanceOfFeeCollector;
+        uint256 deltaOfMEVAccount = balanceOfMEVAccount -
+            address(mevAccount).balance;
+        uint256 deltaMEVOfMEVAccount = mevPaymaster.getDeposit(
+            address(mevAccount)
+        ) - mevOfMEVAccount;
+        assertEq(deltaOfMEVAccount, deltaOfReceiver);
+        assertEq(deltaMEVOfMEVAccount, mevMinAmount);
+        assertGt(deltaOfSearcher, delatOfFeeCollector + mevMinAmount);
+    }
+
+    function _buildUserOp(
+        uint256 _waitInterval,
+        uint256 _mevMinAmount,
+        uint256 _transferAmount
+    ) internal view returns (UserOperation memory userOp) {
+        IMEVAccount.MEVConfig memory mevConfig = IMEVAccount.MEVConfig({
+            minAmount: _mevMinAmount,
+            selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
+        });
+        bytes memory callData = abi.encodeCall(
+            IMEVAccount.boostExecute,
+            (mevConfig, receiver, _transferAmount, "")
+        );
+
+        userOp = UserOperation({
+            sender: address(mevAccount),
+            nonce: 0,
+            initCode: "",
+            callData: callData,
+            callGasLimit: 500000,
+            verificationGasLimit: 500000,
+            preVerificationGas: 60000,
+            maxFeePerGas: 3000000000,
+            maxPriorityFeePerGas: 1500000000,
+            paymasterAndData: "",
+            signature: ""
+        });
+        bytes32 boostUserOpHash = userOp.boostHash(entryPoint);
+        userOp.signature = _getSignature(boostUserOpHash, ownerPrivateKey);
+    }
+
+    function _attachPaymasterAndData(
+        UserOperation memory userOp
+    ) internal view {
+        // use min mev amount
+        MEVPaymaster.MEVPayInfo memory payInfo = mevPaymaster.getMEVPayInfo(
+            searcher,
+            userOp
+        );
+
+        bytes32 payInfoHash = mevPaymaster.getMEVPayInfoHash(payInfo);
+        payInfo.signature = _getSignature(payInfoHash, searcherPrivateKey);
+        bytes memory paymasterAndData = abi.encodePacked(
+            address(mevPaymaster),
+            abi.encode(payInfo)
+        );
+        userOp.paymasterAndData = paymasterAndData;
+    }
+
+    function _getSignature(
+        bytes32 _hash,
+        uint256 _privateKey
+    ) internal pure returns (bytes memory) {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            _privateKey,
+            _hash.toEthSignedMessageHash()
+        );
+        return abi.encodePacked(r, s, v);
+    }
 }
