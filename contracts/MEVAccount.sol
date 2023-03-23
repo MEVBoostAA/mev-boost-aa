@@ -153,6 +153,12 @@ contract MEVAccount is
         _call(dest, value, func);
     }
 
+    function getBoostHash(
+        UserOperation memory userOp
+    ) public view returns (bytes32) {
+        return userOp.boostHash(_entryPoint);
+    }
+
     function supportsInterface(
         bytes4 interfaceId
     ) external view virtual returns (bool) {
