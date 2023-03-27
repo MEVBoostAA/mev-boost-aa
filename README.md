@@ -1,18 +1,39 @@
 # MEVBoostAA
 
-MEVBoostAA captures MEV from searchers to wallet based on the framework of ERC-4337 by `MEVBoostWallet` and `MEVBoostPaymaster`.
+The current paradigm for MEV primarily benefits validators and searchers. However, the MEV is caputured from the user and the user accutally pays more than just indicated transaction fee. In other word, users have been robbed secretly.
 
-The wallet user just need to depoly a MEVBoostWallet(4337 wallet), construct a boostUserOp which is a userOp calling `boostExecute` or `boostExecuteBatch` and brocast it to the 4337 mempool.
+In the user's view:
 
-The first paramter of `boostExecute` or `boostExecuteBatch` is `MEVConfig` which including `minAmount` and `selfSponsoredAfter`.
+- user -- fee to excute tx --> validator
 
-Searchers who has deposit fund to `MEVBoostPaymaster` will scan boostOps in the 4337 mempool.
+However, things happen like that:
 
-- If the boostOp is profitable, the searcher will fill `paymasterAndData` to make boostUserOp valid, build a profitable bundle including that boostUserOp and sends it the bundler.Finally, if boostUserOp is executed success, the wallet user will get `minAmount` mev value from searcher and the boostUserOp is sponsored by the searcher.
+- user -- fee to excute tx --> validator
+- user -- mev caputured by searcher --> searcher
+- searcher -- share mev with validator --> validator
+
+MEVBoostAA captures MEV from searchers to wallets based on the framework of ERC-4337 by implementing `MEVBoostWallet` and `MEVBoostPaymaster`.
+
+Now, things become must better:
+
+- user -- fee to excute tx --> validator
+- user -- mev caputured by searcher --> searcher
+- **searcher -- max mev (through auction) refund to user --> user**
+- searcher -- share mev with validator --> validator
+
+![image info](./graphs/interaction.png)
+
+The wallet user just need to depoly a 4337 wallet `MEVBoostWallet`, construct a boostUserOp which is a userOp calling method `boostExecute` or `boostExecuteBatch` of sender wallet and brocast it to the 4337 mempool.
+
+The first paramter of method `boostExecute` or `boostExecuteBatch` is `MEVConfig` which including `minAmount` and `selfSponsoredAfter`.
+
+Searchers who has deposit fund to `MEVBoostPaymaster` will scan all boostUserOps in the 4337 mempool.
+
+- If the boostOp is profitable, the searcher will fill `paymasterAndData` to make boostUserOp valid, build a profitable bundle including that boostUserOp and sends it the bundler. Finally, if boostUserOp is success, the wallet user will get `minAmount` mev value from searcher and the boostUserOp is sponsored by the searcher.
 
 - If the boostOp is not profitable, no searcher will fill the boostUserOp. Origin boostOp in the 4337 mempool will be valid after timestamp `selfSponsoredAfter`. The bundler will regularly bundle that boostUserOp.
 
 Briefly, a boostUserOp is valid when one of the following conditions is met:
 
-- Searcher fills the `paymasterAndData`, pays `minAmount` mev value to sender and sponsors that boostUserOp
-- BoostUserOp is executed after timestamp `selfSponsoredAfter` and the sender sponsors that boostUser himself
+- Searcher fills the `paymasterAndData`, pays `minAmount` mev value to sender and sponsors that boostUserOp.
+- The boostUserOp is valid after timestamp `selfSponsoredAfter` and sponsored by the sender.
