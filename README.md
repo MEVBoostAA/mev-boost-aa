@@ -16,10 +16,12 @@ MEVBoostAA captures MEV from searchers to wallets based on the framework of ERC-
 
 Now, things become must better:
 
-- user -- fee to excute tx --> validator
 - user -- mev caputured by searcher --> searcher
+- **searcher (as a paymaster) -- fee to excute tx --> validator**
 - **searcher -- max mev (through auction) refund to user --> user**
 - searcher -- share mev with validator --> validator
+
+## Work Flow
 
 ![image info](./graphs/interaction.png)
 
