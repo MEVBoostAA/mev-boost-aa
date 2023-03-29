@@ -39,3 +39,36 @@ Briefly, a boostUserOp is valid when one of the following conditions is met:
 
 - Searcher fills the `paymasterAndData`, pays `minAmount` mev value to sender and sponsors that boostUserOp.
 - The boostUserOp is valid after timestamp `selfSponsoredAfter` and sponsored by the sender.
+
+## Prerequisite
+
+- node (>=14.0.0 <16)
+- yarn (^1.22.10)
+- foundry
+- Environment Variables (Used for foundry fork tests)
+  - MAINNET_NODE_RPC_URL: The RPC URL for accessing forked states.
+
+### Example
+
+```
+  MAINNET_NODE_RPC_URL=https://eth-mainnet.alchemyapi.io/v2/#####__YOUR_SECRET__#####
+```
+
+## Installation
+
+```
+$ git submodule update --init --recursive
+$ yarn run setup
+```
+
+## Compile contracts
+
+```
+$ yarn run compile # compile contracts
+```
+
+## Run unit test
+
+```
+$ yarn run test-foundry-fork # run unit tests with forked states
+```
