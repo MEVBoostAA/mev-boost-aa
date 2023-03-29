@@ -42,7 +42,7 @@ Briefly, a boostUserOp is valid when one of the following conditions is met:
 
 ## Prerequisite
 
-- node (>=14.0.0 <16)
+- node (>=16.0.0 <18)
 - yarn (^1.22.10)
 - foundry
 - Environment Variables (Used for foundry fork tests)
