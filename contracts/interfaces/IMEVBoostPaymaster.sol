@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 import {IPaymaster} from "./IPaymaster.sol";
 import {UserOperation} from "./UserOperation.sol";
 
-interface IMEVPaymaster is IPaymaster {
+interface IMEVBoostPaymaster is IPaymaster {
     event AddMEV(
         address indexed provider,
         address indexed receiver,

@@ -3,15 +3,15 @@ pragma solidity ^0.8.12;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IMEVPaymaster} from "./interfaces/IMEVPaymaster.sol";
+import {IMEVBoostPaymaster} from "./interfaces/IMEVBoostPaymaster.sol";
 import {IPaymaster} from "./interfaces/IPaymaster.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {_packValidationData} from "./libraries/ValidationData.sol";
 import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
-import {IMEVAccount} from "./interfaces/IMEVAccount.sol";
+import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 
-contract MEVPaymaster is IMEVPaymaster, Ownable {
+contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperation for UserOperation;
     uint256 private constant SIG_VALIDATION_FAILED = 1;
@@ -81,12 +81,12 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
         bytes4 selector = bytes4(userOp.callData);
         if (
             mevPayInfo.amount > 0 &&
-            (selector == IMEVAccount.boostExecuteBatch.selector ||
-                selector == IMEVAccount.boostExecute.selector)
+            (selector == IMEVBoostAccount.boostExecuteBatch.selector ||
+                selector == IMEVBoostAccount.boostExecute.selector)
         ) {
-            IMEVAccount.MEVConfig memory mevConfig = abi.decode(
+            IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
-                (IMEVAccount.MEVConfig)
+                (IMEVBoostAccount.MEVConfig)
             );
             require(
                 mevPayInfo.amount >= mevConfig.minAmount,
@@ -170,13 +170,13 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
     ) external view returns (MEVPayInfo memory mevPayInfo) {
         bytes4 selector = bytes4(userOp.callData);
         require(
-            selector == IMEVAccount.boostExecuteBatch.selector ||
-                selector == IMEVAccount.boostExecute.selector,
+            selector == IMEVBoostAccount.boostExecuteBatch.selector ||
+                selector == IMEVBoostAccount.boostExecute.selector,
             "not a mev account"
         );
-        IMEVAccount.MEVConfig memory mevConfig = abi.decode(
+        IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
             userOp.callData[4:],
-            (IMEVAccount.MEVConfig)
+            (IMEVBoostAccount.MEVConfig)
         );
         mevPayInfo = MEVPayInfo(
             provider,
@@ -216,7 +216,7 @@ contract MEVPaymaster is IMEVPaymaster, Ownable {
     function supportsInterface(
         bytes4 interfaceId
     ) external view virtual returns (bool) {
-        return interfaceId == type(IMEVPaymaster).interfaceId;
+        return interfaceId == type(IMEVBoostPaymaster).interfaceId;
     }
 
     /**

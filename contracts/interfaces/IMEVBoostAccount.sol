@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 import {IAccount} from "./IAccount.sol";
 
-interface IMEVAccount is IAccount {
+interface IMEVBoostAccount is IAccount {
     struct MEVConfig {
         uint256 minAmount;
         uint48 selfSponsoredAfter;

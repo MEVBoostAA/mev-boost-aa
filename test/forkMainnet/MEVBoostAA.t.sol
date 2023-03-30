@@ -6,10 +6,10 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IEntryPoint} from "../../contracts/interfaces/IEntryPoint.sol";
 import {UserOperation} from "../../contracts/interfaces/UserOperation.sol";
 import {MEVUserOperation} from "../../contracts/libraries/MEVUserOperation.sol";
-import {MEVPaymaster} from "../../contracts/MEVPaymaster.sol";
-import {MEVAccount} from "../../contracts/MEVAccount.sol";
-import {IMEVAccount} from "../../contracts/interfaces/IMEVAccount.sol";
-import {MEVAccountFactory} from "../../contracts/MEVAccountFactory.sol";
+import {MEVBoostPaymaster} from "../../contracts/MEVBoostPaymaster.sol";
+import {MEVBoostAccount} from "../../contracts/MEVBoostAccount.sol";
+import {IMEVBoostAccount} from "../../contracts/interfaces/IMEVBoostAccount.sol";
+import {MEVBoostAccountFactory} from "../../contracts/MEVBoostAccountFactory.sol";
 
 contract MEVBoostAATest is Test {
     using MEVUserOperation for UserOperation;
@@ -20,9 +20,9 @@ contract MEVBoostAATest is Test {
     uint256 public constant ownerPrivateKey = uint256(1);
     address public owner = vm.addr(ownerPrivateKey);
     IEntryPoint public constant entryPoint = IEntryPoint(entryPointAddr);
-    MEVAccount public mevAccount;
-    MEVAccountFactory public mevAcountFactory;
-    MEVPaymaster public mevPaymaster;
+    MEVBoostAccount public mevBoostAccount;
+    MEVBoostAccountFactory public mevAcountFactory;
+    MEVBoostPaymaster public mevBoostPaymaster;
     uint256 public constant searcherPrivateKey = uint256(2);
     address public searcher = vm.addr(searcherPrivateKey);
     address public receiver = makeAddr("receiver");
@@ -30,40 +30,40 @@ contract MEVBoostAATest is Test {
     uint256 public constant salt = 1024;
 
     function setUp() public {
-        _setUpMEVAccountFactory();
+        _setUpMEVBoostAccountFactory();
         _setUpMEVPayMaster();
-        _setUpMEVAccount();
+        _setUpMEVBoostAccount();
     }
 
-    function _setUpMEVAccountFactory() internal {
-        mevAcountFactory = new MEVAccountFactory(entryPoint);
+    function _setUpMEVBoostAccountFactory() internal {
+        mevAcountFactory = new MEVBoostAccountFactory(entryPoint);
     }
 
     function _setUpMEVPayMaster() internal {
-        mevPaymaster = new MEVPaymaster(entryPoint);
-        mevPaymaster.deposit{value: 100 ether}(searcher);
-        uint256 deposit = mevPaymaster.getDeposit(searcher);
+        mevBoostPaymaster = new MEVBoostPaymaster(entryPoint);
+        mevBoostPaymaster.deposit{value: 100 ether}(searcher);
+        uint256 deposit = mevBoostPaymaster.getDeposit(searcher);
         assertEq(deposit, 100 ether);
     }
 
-    function _setUpMEVAccount() internal {
+    function _setUpMEVBoostAccount() internal {
         address expectedAccount = mevAcountFactory.getAddress(
             owner,
-            address(mevPaymaster),
+            address(mevBoostPaymaster),
             salt
         );
-        mevAccount = mevAcountFactory.createAccount(
+        mevBoostAccount = mevAcountFactory.createAccount(
             owner,
-            address(mevPaymaster),
+            address(mevBoostPaymaster),
             salt
         );
-        assertEq(expectedAccount, address(mevAccount));
-        assertEq(mevAccount.owner(), owner);
-        vm.deal(address(mevAccount), 100 ether);
-        assertEq(address(mevAccount).balance, 100 ether);
+        assertEq(expectedAccount, address(mevBoostAccount));
+        assertEq(mevBoostAccount.owner(), owner);
+        vm.deal(address(mevBoostAccount), 100 ether);
+        assertEq(address(mevBoostAccount).balance, 100 ether);
     }
 
-    function testSelfSponsoredExpiredMEVAccount() public {
+    function testSelfSponsoredExpiredMEVBoostAccount() public {
         uint256 waitInterval = 0;
         uint256 mevMinAmount = 10;
         uint256 amount = 1 ether;
@@ -77,7 +77,7 @@ contract MEVBoostAATest is Test {
         _handleOpsAndCheckForSelfSponsoredTx(ops, amount);
     }
 
-    function testSearcherSponsoredMEVAccount() public {
+    function testSearcherSponsoredMEVBoostAccount() public {
         uint256 waitInterval = 1000;
         uint256 mevMinAmount = 10;
         uint256 amount = 1 ether;
@@ -98,30 +98,33 @@ contract MEVBoostAATest is Test {
         uint256 mevMinAmount,
         uint256 transferAmount
     ) internal {
-        uint256 balanceOfSearcher = mevPaymaster.getDeposit(searcher);
+        uint256 balanceOfSearcher = mevBoostPaymaster.getDeposit(searcher);
         uint256 balanceOfReceiver = receiver.balance;
         uint256 balanceOfFeeCollector = feeCollector.balance;
-        uint256 balanceOfMEVAccount = address(mevAccount).balance;
-        uint256 mevOfMEVAccount = mevPaymaster.getDeposit(address(mevAccount));
+        uint256 balanceOfMEVBoostAccount = address(mevBoostAccount).balance;
+        uint256 mevOfMEVBoostAccount = mevBoostPaymaster.getDeposit(
+            address(mevBoostAccount)
+        );
         entryPoint.handleOps(ops, payable(feeCollector));
         uint256 deltaOfSearcher = balanceOfSearcher -
-            mevPaymaster.getDeposit(searcher);
+            mevBoostPaymaster.getDeposit(searcher);
         uint256 deltaOfReceiver = receiver.balance - balanceOfReceiver;
         uint256 delatOfFeeCollector = feeCollector.balance -
             balanceOfFeeCollector;
-        uint256 deltaOfMEVAccount = balanceOfMEVAccount -
-            address(mevAccount).balance;
-        uint256 deltaMEVOfMEVAccount = mevPaymaster.getDeposit(
-            address(mevAccount)
-        ) - mevOfMEVAccount;
-        assertEq(deltaOfMEVAccount, deltaOfReceiver);
+        uint256 deltaOfMEVBoostAccount = balanceOfMEVBoostAccount -
+            address(mevBoostAccount).balance;
+        uint256 deltaMEVOfMEVBoostAccount = mevBoostPaymaster.getDeposit(
+            address(mevBoostAccount)
+        ) - mevOfMEVBoostAccount;
+        assertEq(deltaOfMEVBoostAccount, deltaOfReceiver);
         assertEq(deltaOfReceiver, transferAmount);
-        assertEq(deltaMEVOfMEVAccount, mevMinAmount);
-        uint256 legacyAmount = entryPoint.balanceOf(address(mevPaymaster)) -
-            mevPaymaster.liability();
+        assertEq(deltaMEVOfMEVBoostAccount, mevMinAmount);
+        uint256 legacyAmount = entryPoint.balanceOf(
+            address(mevBoostPaymaster)
+        ) - mevBoostPaymaster.liability();
         assertEq(
             deltaOfSearcher,
-            delatOfFeeCollector + deltaMEVOfMEVAccount + legacyAmount
+            delatOfFeeCollector + deltaMEVOfMEVBoostAccount + legacyAmount
         );
     }
 
@@ -131,25 +134,25 @@ contract MEVBoostAATest is Test {
     ) internal {
         uint256 balanceOfReceiver = receiver.balance;
         uint256 balanceOfFeeCollector = feeCollector.balance;
-        uint256 balanceOfMEVAccount = address(mevAccount).balance;
+        uint256 balanceOfMEVBoostAccount = address(mevBoostAccount).balance;
         uint256 balanceOfEntryPoint = entryPointAddr.balance;
         entryPoint.handleOps(ops, payable(feeCollector));
         uint256 deltaOfReceiver = receiver.balance - balanceOfReceiver;
         uint256 delatOfFeeCollector = feeCollector.balance -
             balanceOfFeeCollector;
-        uint256 deltaOfMEVAccount = balanceOfMEVAccount -
-            address(mevAccount).balance;
+        uint256 deltaOfMEVBoostAccount = balanceOfMEVBoostAccount -
+            address(mevBoostAccount).balance;
         uint256 deltaOfEntryPoint = entryPointAddr.balance -
             balanceOfEntryPoint;
         assertEq(deltaOfReceiver, transferAmount);
         assertEq(
             deltaOfReceiver + delatOfFeeCollector + deltaOfEntryPoint,
-            deltaOfMEVAccount
+            deltaOfMEVBoostAccount
         );
-        uint256 mevAccountBalanceInEntryPoint = entryPoint.balanceOf(
-            address(mevAccount)
+        uint256 mevBoostAccountBalanceInEntryPoint = entryPoint.balanceOf(
+            address(mevBoostAccount)
         );
-        assertEq(mevAccountBalanceInEntryPoint, deltaOfEntryPoint);
+        assertEq(mevBoostAccountBalanceInEntryPoint, deltaOfEntryPoint);
     }
 
     function _buildUserOp(
@@ -157,17 +160,18 @@ contract MEVBoostAATest is Test {
         uint256 _mevMinAmount,
         uint256 _transferAmount
     ) internal view returns (UserOperation memory userOp) {
-        IMEVAccount.MEVConfig memory mevConfig = IMEVAccount.MEVConfig({
-            minAmount: _mevMinAmount,
-            selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
-        });
+        IMEVBoostAccount.MEVConfig memory mevConfig = IMEVBoostAccount
+            .MEVConfig({
+                minAmount: _mevMinAmount,
+                selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
+            });
         bytes memory callData = abi.encodeCall(
-            IMEVAccount.boostExecute,
+            IMEVBoostAccount.boostExecute,
             (mevConfig, receiver, _transferAmount, "")
         );
 
         userOp = UserOperation({
-            sender: address(mevAccount),
+            sender: address(mevBoostAccount),
             nonce: 0,
             initCode: "",
             callData: callData,
@@ -187,15 +191,13 @@ contract MEVBoostAATest is Test {
         UserOperation memory userOp
     ) internal view {
         // use min mev amount
-        MEVPaymaster.MEVPayInfo memory payInfo = mevPaymaster.getMEVPayInfo(
-            searcher,
-            userOp
-        );
+        MEVBoostPaymaster.MEVPayInfo memory payInfo = mevBoostPaymaster
+            .getMEVPayInfo(searcher, userOp);
 
-        bytes32 payInfoHash = mevPaymaster.getMEVPayInfoHash(payInfo);
+        bytes32 payInfoHash = mevBoostPaymaster.getMEVPayInfoHash(payInfo);
         payInfo.signature = _getSignature(payInfoHash, searcherPrivateKey);
         bytes memory paymasterAndData = abi.encodePacked(
-            address(mevPaymaster),
+            address(mevBoostPaymaster),
             abi.encode(payInfo)
         );
         userOp.paymasterAndData = paymasterAndData;

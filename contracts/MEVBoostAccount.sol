@@ -8,7 +8,7 @@ import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {IAccount} from "./interfaces/IAccount.sol";
 import {_packValidationData} from "./libraries/ValidationData.sol";
 import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
-import {IMEVAccount} from "./interfaces/IMEVAccount.sol";
+import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
@@ -18,8 +18,8 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
  *  has execute, eth handling methods
  *  has a single signer that can send requests through the entryPoint.
  */
-contract MEVAccount is
-    IMEVAccount,
+contract MEVBoostAccount is
+    IMEVBoostAccount,
     BaseAccount,
     UUPSUpgradeable,
     Initializable
@@ -34,12 +34,12 @@ contract MEVAccount is
     //explicit sizes of nonce, to fit a single storage cell with "owner"
     uint96 private _nonce;
     address public owner;
-    address public mevPaymaster;
+    address public mevBoostPaymaster;
 
-    event MEVAccountInitialized(
+    event MEVBoostAccountInitialized(
         IEntryPoint indexed entryPoint,
         address indexed owner,
-        address indexed mevPaymaster
+        address indexed mevBoostPaymaster
     );
 
     modifier onlyOwner() {
@@ -162,20 +162,23 @@ contract MEVAccount is
     function supportsInterface(
         bytes4 interfaceId
     ) external view virtual returns (bool) {
-        return interfaceId == type(IMEVAccount).interfaceId;
+        return interfaceId == type(IMEVBoostAccount).interfaceId;
     }
 
     function initialize(
         address anOwner,
-        address anMEVPaymaster
+        address anMEVBoostPaymaster
     ) public virtual initializer {
-        _initialize(anOwner, anMEVPaymaster);
+        _initialize(anOwner, anMEVBoostPaymaster);
     }
 
-    function _initialize(address anOwner, address anMEVPaymaster) internal {
+    function _initialize(
+        address anOwner,
+        address anMEVBoostPaymaster
+    ) internal {
         owner = anOwner;
-        mevPaymaster = anMEVPaymaster;
-        emit MEVAccountInitialized(_entryPoint, owner, mevPaymaster);
+        mevBoostPaymaster = anMEVBoostPaymaster;
+        emit MEVBoostAccountInitialized(_entryPoint, owner, mevBoostPaymaster);
     }
 
     /// implement template method of BaseAccount
@@ -243,6 +246,6 @@ contract MEVAccount is
     ) internal view returns (bool) {
         return
             userOp.paymasterAndData.length >= 20 &&
-            address(bytes20(userOp.paymasterAndData[:20])) == mevPaymaster;
+            address(bytes20(userOp.paymasterAndData[:20])) == mevBoostPaymaster;
     }
 }

@@ -4,13 +4,13 @@ pragma solidity ^0.8.12;
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
-import {MEVAccount} from "./MEVAccount.sol";
+import {MEVBoostAccount} from "./MEVBoostAccount.sol";
 
-contract MEVAccountFactory {
-    MEVAccount public immutable accountImplementation;
+contract MEVBoostAccountFactory {
+    MEVBoostAccount public immutable accountImplementation;
 
     constructor(IEntryPoint _entryPoint) {
-        accountImplementation = new MEVAccount(_entryPoint);
+        accountImplementation = new MEVBoostAccount(_entryPoint);
     }
 
     /**
@@ -21,19 +21,22 @@ contract MEVAccountFactory {
      */
     function createAccount(
         address owner,
-        address mevPaymaster,
+        address mevBoostPaymaster,
         uint256 salt
-    ) public returns (MEVAccount ret) {
-        address addr = getAddress(owner, mevPaymaster, salt);
+    ) public returns (MEVBoostAccount ret) {
+        address addr = getAddress(owner, mevBoostPaymaster, salt);
         uint codeSize = addr.code.length;
         if (codeSize > 0) {
-            return MEVAccount(payable(addr));
+            return MEVBoostAccount(payable(addr));
         }
-        ret = MEVAccount(
+        ret = MEVBoostAccount(
             payable(
                 new ERC1967Proxy{salt: bytes32(salt)}(
                     address(accountImplementation),
-                    abi.encodeCall(MEVAccount.initialize, (owner, mevPaymaster))
+                    abi.encodeCall(
+                        MEVBoostAccount.initialize,
+                        (owner, mevBoostPaymaster)
+                    )
                 )
             )
         );
@@ -44,7 +47,7 @@ contract MEVAccountFactory {
      */
     function getAddress(
         address owner,
-        address mevPaymaster,
+        address mevBoostPaymaster,
         uint256 salt
     ) public view returns (address) {
         return
@@ -56,8 +59,8 @@ contract MEVAccountFactory {
                         abi.encode(
                             address(accountImplementation),
                             abi.encodeCall(
-                                MEVAccount.initialize,
-                                (owner, mevPaymaster)
+                                MEVBoostAccount.initialize,
+                                (owner, mevBoostPaymaster)
                             )
                         )
                     )
