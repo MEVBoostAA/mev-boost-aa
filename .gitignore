@@ -4,5 +4,13 @@ node_modules/
 # Foundry
 artifacts/
 cache/
-
 *.log
+
+# Hardhat
+.env
+coverage
+coverage.json
+typechain/
+typechain-types/
+cache_hardhat/
+
