@@ -3,6 +3,8 @@
   "description": "MEV Boost ERC-4337 Account Contracts",
   "version": "1.0.0",
   "main": "./dist/index.js",
+  "author": "doublespending",
+  "license": "GPL-3.0",
   "scripts": {
     "prepack": "../scripts/prepack-contracts-package.sh",
     "postpack": "../scripts/postpack-contracts-package.sh"
@@ -22,7 +24,6 @@
     "mev-boost",
     "aa"
   ],
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/doublespending/MEVBoostAA/issues"
   }
