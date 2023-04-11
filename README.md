@@ -12,6 +12,7 @@ The project supports senders to capture MEV under the ERC-4337 framework:
 The project mainly has following advantages:
 
 - Improve the current MEV ecosystem and maximize the sender's interests by trustlessly ensuring the maxium MEV capture by the sender.
+- It provides a completely **decentralized** and **permisionless** MEV-Share solution.
 - Considering the existence of MEV, the project promotes the adoption of the ERC-4337 wallet by providing the build-in mev capture features and making transaction cost possibly less expensive than the EOA.
 
 ## Value Redirection
