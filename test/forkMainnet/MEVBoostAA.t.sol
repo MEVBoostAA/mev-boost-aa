@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IEntryPoint} from "../../contracts/interfaces/IEntryPoint.sol";
 import {UserOperation} from "../../contracts/interfaces/UserOperation.sol";
-import {MEVUserOperation} from "../../contracts/libraries/MEVUserOperation.sol";
+import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
 import {MEVBoostPaymaster} from "../../contracts/MEVBoostPaymaster.sol";
 import {MEVBoostAccount} from "../../contracts/MEVBoostAccount.sol";
 import {IMEVBoostAccount} from "../../contracts/interfaces/IMEVBoostAccount.sol";
@@ -15,7 +15,7 @@ contract MEVBoostAATest is Test {
     using MEVUserOperation for UserOperation;
     using ECDSA for bytes32;
     address public constant entryPointAddr =
-        0x0576a174D229E3cFA37253523E645A78A0C91B57;
+        0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
     uint256 public constant chainId = 1; // mainnet
     uint256 public constant ownerPrivateKey = uint256(1);
     address public owner = vm.addr(ownerPrivateKey);

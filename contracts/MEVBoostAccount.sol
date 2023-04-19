@@ -141,7 +141,7 @@ contract MEVBoostAccount is
     }
 
     function getBoostHash(
-        UserOperation memory userOp
+        UserOperation calldata userOp
     ) public view returns (bytes32) {
         return userOp.boostHash(_entryPoint);
     }
