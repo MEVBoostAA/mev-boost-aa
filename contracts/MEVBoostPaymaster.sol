@@ -7,7 +7,7 @@ import {IMEVBoostPaymaster} from "./interfaces/IMEVBoostPaymaster.sol";
 import {IPaymaster} from "./interfaces/IPaymaster.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
-import {_packValidationData} from "./libraries/ValidationData.sol";
+import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
 import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 

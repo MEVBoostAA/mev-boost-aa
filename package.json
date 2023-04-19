@@ -16,7 +16,7 @@
     "compile": "npx hardhat compile --force",
     "clean": "npx hardhat clean",
     "test-foundry-local": "forge test -vvv --no-match-path 'test/forkMainnet/*.t.sol'",
-    "test-foundry-fork": "forge test -vvv --fork-url $MAINNET_NODE_RPC_URL --fork-block-number 16776718 --match-path 'test/forkMainnet/*.t.sol'"
+    "test-foundry-fork": "forge test -vvv --fork-url $MAINNET_NODE_RPC_URL --fork-block-number 17067009 --match-path 'test/forkMainnet/*.t.sol'"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",

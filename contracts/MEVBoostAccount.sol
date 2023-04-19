@@ -6,7 +6,7 @@ import {BaseAccount} from "./abstracts/BaseAccount.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {IAccount} from "./interfaces/IAccount.sol";
-import {_packValidationData} from "./libraries/ValidationData.sol";
+import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
 import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -28,11 +28,6 @@ contract MEVBoostAccount is
     using MEVUserOperation for UserOperation;
 
     IEntryPoint private immutable _entryPoint;
-    //filler member, to push the nonce and owner to the same slot
-    // the "Initializeble" class takes 2 bytes in the first slot
-    bytes28 private _filler;
-    //explicit sizes of nonce, to fit a single storage cell with "owner"
-    uint96 private _nonce;
     address public owner;
     address public mevBoostPaymaster;
 
@@ -58,11 +53,6 @@ contract MEVBoostAccount is
             "account: not Owner or EntryPoint"
         );
         _;
-    }
-
-    /// @inheritdoc BaseAccount
-    function nonce() public view virtual override returns (uint256) {
-        return _nonce;
     }
 
     /// @inheritdoc BaseAccount
@@ -110,10 +100,7 @@ contract MEVBoostAccount is
         } else {
             validationData = _validateSignature(userOp, userOpHash);
         }
-        if (userOp.initCode.length == 0) {
-            _validateAndUpdateNonce(userOp);
-        }
-
+        _validateNonce(userOp.nonce);
         _payPrefund(missingAccountFunds);
     }
 
@@ -179,13 +166,6 @@ contract MEVBoostAccount is
         owner = anOwner;
         mevBoostPaymaster = anMEVBoostPaymaster;
         emit MEVBoostAccountInitialized(_entryPoint, owner, mevBoostPaymaster);
-    }
-
-    /// implement template method of BaseAccount
-    function _validateAndUpdateNonce(
-        UserOperation calldata userOp
-    ) internal override {
-        require(_nonce++ == userOp.nonce, "account: invalid nonce");
     }
 
     /// implement template method of BaseAccount
