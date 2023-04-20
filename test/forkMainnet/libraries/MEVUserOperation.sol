@@ -23,7 +23,8 @@ library MEVUserOperation {
                     userOp.verificationGasLimit,
                     userOp.preVerificationGas,
                     userOp.maxFeePerGas,
-                    userOp.maxPriorityFeePerGas
+                    userOp.maxPriorityFeePerGas,
+                    bytes32(0)
                 )
             );
     }
