@@ -15,10 +15,6 @@ The project mainly has following advantages:
 - It provides a completely **decentralized** and **permisionless** MEV-Share solution.
 - Considering the existence of MEV, the project promotes the adoption of the ERC-4337 wallet by providing the build-in mev capture features and making transaction cost possibly less expensive than the EOA.
 
-## SDK
-- [sdk for account](https://github.com/doublespending/mev-boost-aa-account-sdk)
-- [sdk for searcher](https://github.com/doublespending/mev-boost-aa-searcher-sdk)
-
 ## Value Redirection
 
 ### Current MEV Ecosystem
@@ -38,6 +34,10 @@ MEVBoostAA captures MEV from searchers to senders based on the framework of ERC-
 - **`searcher` (as a paymaster) --[fee to excute tx] --> `validator`**
 - **`searcher` --[maxium MEV refund]--> `sender`**
 - `searcher` -- share mev with validator --> `validator`
+
+## SDK
+- [sdk for account](https://github.com/doublespending/mev-boost-aa-account-sdk)
+- [sdk for searcher](https://github.com/doublespending/mev-boost-aa-searcher-sdk)
 
 ## Work Flow
 
