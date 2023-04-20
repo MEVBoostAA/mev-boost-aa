@@ -15,6 +15,10 @@ The project mainly has following advantages:
 - It provides a completely **decentralized** and **permisionless** MEV-Share solution.
 - Considering the existence of MEV, the project promotes the adoption of the ERC-4337 wallet by providing the build-in mev capture features and making transaction cost possibly less expensive than the EOA.
 
+## SDK
+- [sdk for account](https://github.com/doublespending/mev-boost-aa-account-sdk)
+- [sdk for searcher](https://github.com/doublespending/mev-boost-aa-searcher-sdk)
+
 ## Value Redirection
 
 ### Current MEV Ecosystem
@@ -86,7 +90,3 @@ $ yarn run compile # compile contracts
 ```
 $ yarn run test-foundry-fork # run unit tests with forked states
 ```
-
-## SDK
-- [sdk for account](https://github.com/doublespending/mev-boost-aa-account-sdk)
-- [sdk for searcher](https://github.com/doublespending/mev-boost-aa-searcher-sdk)
