@@ -107,37 +107,37 @@ contract MEVBoostAccount is
     function execute(
         address dest,
         uint256 value,
-        bytes calldata func
+        bytes calldata data
     ) external onlyEntryPointOrOwner {
-        _call(dest, value, func);
+        _call(dest, value, data);
     }
 
     function executeBatch(
         address[] calldata dest,
         uint256[] calldata value,
-        bytes[] calldata func
+        bytes[] calldata data
     ) external onlyEntryPointOrOwner {
-        _callBatch(dest, value, func);
+        _callBatch(dest, value, data);
     }
 
     function boostExecuteBatch(
         MEVConfig calldata mevConfig,
         address[] calldata dest,
         uint256[] calldata value,
-        bytes[] calldata func
+        bytes[] calldata data
     ) external onlyEntryPointOrOwner {
         (mevConfig);
-        _callBatch(dest, value, func);
+        _callBatch(dest, value, data);
     }
 
     function boostExecute(
         MEVConfig calldata mevConfig,
         address dest,
         uint256 value,
-        bytes calldata func
+        bytes calldata data
     ) external onlyEntryPointOrOwner {
         (mevConfig);
-        _call(dest, value, func);
+        _call(dest, value, data);
     }
 
     function getBoostHash(
@@ -210,14 +210,14 @@ contract MEVBoostAccount is
     function _callBatch(
         address[] calldata dest,
         uint256[] calldata value,
-        bytes[] calldata func
+        bytes[] calldata data
     ) internal {
         require(
-            dest.length == func.length && dest.length == value.length,
+            dest.length == data.length && dest.length == value.length,
             "wrong array lengths"
         );
         for (uint256 i = 0; i < dest.length; i++) {
-            _call(dest[i], 0, func[i]);
+            _call(dest[i], 0, data[i]);
         }
     }
 
