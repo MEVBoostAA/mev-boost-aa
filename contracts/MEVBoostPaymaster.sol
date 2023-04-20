@@ -67,7 +67,7 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
             (MEVPayInfo)
         );
         require(
-            mevPayInfo.boostHash == userOp.boostHash(entryPoint),
+            mevPayInfo.boostUserOpHash == userOp.boostHash(entryPoint),
             "invalid mev info"
         );
         uint256 totalCost = maxCost + mevPayInfo.amount;
@@ -105,12 +105,12 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
                 mevPayInfo.amount,
                 true
             );
-            emit AddMEV(mevPayInfo.provider, userOp.sender, mevPayInfo.amount);
         }
 
         return (
             abi.encode(
                 userOpHash,
+                mevPayInfo.boostUserOpHash,
                 userOp.maxFeePerGas,
                 userOp.maxPriorityFeePerGas,
                 maxCost
@@ -135,10 +135,11 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
     ) internal {
         (
             bytes32 userOpHash,
+            bytes32 boostUserOpHash,
             uint256 maxFeePerGas,
             uint256 maxPriorityFeePerGas,
             uint256 maxCost
-        ) = abi.decode(context, (bytes32, uint256, uint256, uint256));
+        ) = abi.decode(context, (bytes32, bytes32, uint256, uint256, uint256));
         uint256 gasPrice = _getGasPrice(maxFeePerGas, maxPriorityFeePerGas);
         uint256 totalCost = actualGasCost + MAX_GAS_OF_POST * gasPrice;
         MEVInfo memory mevInfo = mevMapping[userOpHash];
@@ -148,17 +149,23 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
             delete mevMapping[userOpHash];
             if (mode == IPaymaster.PostOpMode.opSucceeded) {
                 balances[mevInfo.receiver] += mevInfo.amount;
-                emit FetchMEV(
+                emit SettleMEV(
+                    userOpHash,
+                    boostUserOpHash,
                     mevInfo.provider,
                     mevInfo.receiver,
-                    mevInfo.amount
+                    mevInfo.amount,
+                    true
                 );
             } else {
                 balances[mevInfo.provider] += mevInfo.amount;
-                emit RefundMEV(
+                emit SettleMEV(
+                    userOpHash,
+                    boostUserOpHash,
                     mevInfo.provider,
                     mevInfo.receiver,
-                    mevInfo.amount
+                    mevInfo.amount,
+                    false
                 );
             }
         }
@@ -266,7 +273,7 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
             keccak256(
                 abi.encode(
                     mevPayInfo.provider,
-                    mevPayInfo.boostHash,
+                    mevPayInfo.boostUserOpHash,
                     mevPayInfo.amount
                 )
             );

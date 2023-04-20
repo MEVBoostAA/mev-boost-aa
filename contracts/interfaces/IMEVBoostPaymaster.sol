@@ -5,25 +5,18 @@ import {IPaymaster} from "./IPaymaster.sol";
 import {UserOperation} from "./UserOperation.sol";
 
 interface IMEVBoostPaymaster is IPaymaster {
-    event AddMEV(
+    event SettleMEV(
+        bytes32 indexed userOpHash,
+        bytes32 indexed boostUserOpHash,
         address indexed provider,
-        address indexed receiver,
-        uint256 amount
-    );
-    event FetchMEV(
-        address indexed provider,
-        address indexed receiver,
-        uint256 amount
-    );
-    event RefundMEV(
-        address indexed provider,
-        address indexed receiver,
-        uint256 amount
+        address receiver,
+        uint256 expectedAmount,
+        bool opSucceeded
     );
 
     struct MEVPayInfo {
         address provider;
-        bytes32 boostHash;
+        bytes32 boostUserOpHash;
         uint256 amount;
         bytes signature;
     }
