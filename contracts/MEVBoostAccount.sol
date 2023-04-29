@@ -90,11 +90,11 @@ contract MEVBoostAccount is
             );
             bytes32 userBootOpHash = userOp.boostHash(_entryPoint);
             validationData = _validateSignature(userOp, userBootOpHash);
-            if (validationData == 0 && !_isMevPaymaster(userOp)) {
+            if (!_isMevPaymaster(userOp)) {
                 validationData = _packValidationData(
-                    false,
-                    0,
-                    mevConfig.selfSponsoredAfter
+                    validationData == SIG_VALIDATION_FAILED, // sigFailed
+                    0, // validUntil
+                    mevConfig.selfSponsoredAfter // validAfter
                 );
             }
         } else {
