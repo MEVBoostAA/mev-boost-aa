@@ -92,13 +92,12 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
                 mevPayInfo.amount >= mevConfig.minAmount,
                 "mev amount is not enough"
             );
-            if (validationData == 0) {
-                validationData = _packValidationData(
-                    false,
-                    mevConfig.selfSponsoredAfter,
-                    0
-                );
-            }
+            validationData = _packValidationData(
+                validationData == SIG_VALIDATION_FAILED, // sigFailed
+                mevConfig.selfSponsoredAfter, // validUntil
+                0 // validAfter
+            );
+
             mevMapping[userOpHash] = MEVInfo(
                 mevPayInfo.provider,
                 userOp.sender,
