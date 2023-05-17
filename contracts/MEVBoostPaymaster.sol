@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IMEVBoostPaymaster} from "./interfaces/IMEVBoostPaymaster.sol";
@@ -11,7 +12,7 @@ import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
 import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 
-contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
+contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperation for UserOperation;
     uint256 private constant SIG_VALIDATION_FAILED = 1;
@@ -219,10 +220,9 @@ contract MEVBoostPaymaster is IMEVBoostPaymaster, Ownable {
         balances[owner()] += legacy;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external view virtual returns (bool) {
-        return interfaceId == type(IMEVBoostPaymaster).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return (interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(IMEVBoostPaymaster).interfaceId);
     }
 
     /**
