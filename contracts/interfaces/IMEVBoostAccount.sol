@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
+
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IAccount} from "./IAccount.sol";
 
-interface IMEVBoostAccount is IAccount {
+interface IMEVBoostAccount is IERC165, IAccount {
     struct MEVConfig {
         uint256 minAmount;
         uint48 selfSponsoredAfter;
@@ -21,6 +23,4 @@ interface IMEVBoostAccount is IAccount {
         uint256[] calldata value,
         bytes[] calldata func
     ) external;
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

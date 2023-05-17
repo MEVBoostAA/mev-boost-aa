@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {BaseAccount} from "./abstracts/BaseAccount.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
@@ -19,6 +20,7 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
  *  has a single signer that can send requests through the entryPoint.
  */
 contract MEVBoostAccount is
+    IERC165,
     IMEVBoostAccount,
     BaseAccount,
     UUPSUpgradeable,
@@ -146,10 +148,9 @@ contract MEVBoostAccount is
         return userOp.boostHash(_entryPoint);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external view virtual returns (bool) {
-        return interfaceId == type(IMEVBoostAccount).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return (interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(IMEVBoostAccount).interfaceId);
     }
 
     function initialize(
