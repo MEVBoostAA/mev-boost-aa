@@ -57,18 +57,13 @@ contract MEVBoostAccount is
         _;
     }
 
-    /// @inheritdoc BaseAccount
-    function entryPoint() public view virtual override returns (IEntryPoint) {
-        return _entryPoint;
-    }
-
-    // solhint-disable-next-line no-empty-blocks
-    receive() external payable {}
-
     constructor(IEntryPoint anEntryPoint) {
         _entryPoint = anEntryPoint;
         _disableInitializers();
     }
+
+    // solhint-disable-next-line no-empty-blocks
+    receive() external payable {}
 
     function validateUserOp(
         UserOperation calldata userOp,
@@ -142,6 +137,18 @@ contract MEVBoostAccount is
         _call(dest, value, data);
     }
 
+    function initialize(
+        address anOwner,
+        address anMEVBoostPaymaster
+    ) public virtual initializer {
+        _initialize(anOwner, anMEVBoostPaymaster);
+    }
+
+    /// @inheritdoc BaseAccount
+    function entryPoint() public view virtual override returns (IEntryPoint) {
+        return _entryPoint;
+    }
+
     function getBoostHash(
         UserOperation calldata userOp
     ) public view returns (bytes32) {
@@ -153,13 +160,6 @@ contract MEVBoostAccount is
             interfaceId == type(IMEVBoostAccount).interfaceId);
     }
 
-    function initialize(
-        address anOwner,
-        address anMEVBoostPaymaster
-    ) public virtual initializer {
-        _initialize(anOwner, anMEVBoostPaymaster);
-    }
-
     function _initialize(
         address anOwner,
         address anMEVBoostPaymaster
@@ -167,32 +167,6 @@ contract MEVBoostAccount is
         owner = anOwner;
         mevBoostPaymaster = anMEVBoostPaymaster;
         emit MEVBoostAccountInitialized(_entryPoint, owner, mevBoostPaymaster);
-    }
-
-    /// implement template method of BaseAccount
-    function _validateSignature(
-        UserOperation calldata userOp,
-        bytes32 userOpHash
-    ) internal virtual override returns (uint256 validationData) {
-        bytes32 hash = userOpHash.toEthSignedMessageHash();
-        if (owner != hash.recover(userOp.signature))
-            return SIG_VALIDATION_FAILED;
-        return 0;
-    }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal view override {
-        (newImplementation);
-        _onlyOwner();
-    }
-
-    function _onlyOwner() internal view {
-        //directly from EOA owner, or through the account itself (which gets redirected through execute())
-        require(
-            msg.sender == owner || msg.sender == address(this),
-            "only owner"
-        );
     }
 
     function _call(
@@ -220,6 +194,32 @@ contract MEVBoostAccount is
         for (uint256 i = 0; i < dest.length; i++) {
             _call(dest[i], 0, data[i]);
         }
+    }
+
+    /// implement template method of BaseAccount
+    function _validateSignature(
+        UserOperation calldata userOp,
+        bytes32 userOpHash
+    ) internal virtual override returns (uint256 validationData) {
+        bytes32 hash = userOpHash.toEthSignedMessageHash();
+        if (owner != hash.recover(userOp.signature))
+            return SIG_VALIDATION_FAILED;
+        return 0;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal view override {
+        (newImplementation);
+        _onlyOwner();
+    }
+
+    function _onlyOwner() internal view {
+        //directly from EOA owner, or through the account itself (which gets redirected through execute())
+        require(
+            msg.sender == owner || msg.sender == address(this),
+            "only owner"
+        );
     }
 
     function _isMevPaymaster(

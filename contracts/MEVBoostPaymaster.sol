@@ -39,6 +39,9 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         entryPoint = _entryPoint;
     }
 
+    // solhint-disable-next-line no-empty-blocks
+    receive() external payable {}
+
     /// @inheritdoc IPaymaster
     function validatePaymasterUserOp(
         UserOperation calldata userOp,
@@ -51,6 +54,109 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         returns (bytes memory context, uint256 validationData)
     {
         return _validatePaymasterUserOp(userOp, userOpHash, maxCost);
+    }
+
+    /// @inheritdoc IPaymaster
+    function postOp(
+        PostOpMode mode,
+        bytes calldata context,
+        uint256 actualGasCost
+    ) external override onlyEntryPoint {
+        _postOp(mode, context, actualGasCost);
+    }
+
+    function deposit(address provider) external payable {
+        liability += msg.value;
+        balances[provider] += msg.value;
+        entryPoint.depositTo{value: msg.value}(address(this));
+    }
+
+    /**
+     * add stake for this paymaster.
+     * This method can also carry eth value to add to the current stake.
+     * @param unstakeDelaySec - the unstake delay for this paymaster. Can only be increased.
+     */
+    function addStake(uint32 unstakeDelaySec) external payable onlyOwner {
+        entryPoint.addStake{value: msg.value}(unstakeDelaySec);
+    }
+
+    function withdrawTo(
+        address payable withdrawAddress,
+        uint256 amount
+    ) external {
+        liability -= amount;
+        balances[msg.sender] -= amount;
+        entryPoint.withdrawTo(withdrawAddress, amount);
+    }
+
+    function fetchLegacy() external onlyOwner returns (uint256 legacy) {
+        uint256 asset = entryPoint.balanceOf(address(this));
+        require(asset > liability, "asset should greater than liability");
+        legacy = asset - liability;
+        liability = asset;
+        balances[owner()] += legacy;
+    }
+
+    /**
+     * unlock the stake, in order to withdraw it.
+     * The paymaster can't serve requests once unlocked, until it calls addStake again
+     */
+    function unlockStake() external onlyOwner {
+        entryPoint.unlockStake();
+    }
+
+    /**
+     * withdraw the entire paymaster's stake.
+     * stake must be unlocked first (and then wait for the unstakeDelay to be over)
+     * @param withdrawAddress the address to send withdrawn value.
+     */
+    function withdrawStake(address payable withdrawAddress) external onlyOwner {
+        entryPoint.withdrawStake(withdrawAddress);
+    }
+
+    function getMEVPayInfo(
+        address provider,
+        UserOperation calldata userOp
+    ) external view returns (MEVPayInfo memory mevPayInfo) {
+        bytes4 selector = bytes4(userOp.callData);
+        require(
+            selector == IMEVBoostAccount.boostExecuteBatch.selector ||
+                selector == IMEVBoostAccount.boostExecute.selector,
+            "not a mev account"
+        );
+        IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
+            userOp.callData[4:],
+            (IMEVBoostAccount.MEVConfig)
+        );
+        mevPayInfo = MEVPayInfo(
+            provider,
+            userOp.boostHash(entryPoint),
+            mevConfig.minAmount,
+            ""
+        );
+    }
+
+    function getDeposit(address provider) external view returns (uint256) {
+        return balances[provider];
+    }
+
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return (interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(IMEVBoostPaymaster).interfaceId);
+    }
+
+    function getMEVPayInfoHash(
+        MEVPayInfo memory mevPayInfo
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    _internalMEVPayInfoHash(mevPayInfo),
+                    address(this),
+                    entryPoint,
+                    block.chainid
+                )
+            );
     }
 
     function _validatePaymasterUserOp(
@@ -119,15 +225,6 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         );
     }
 
-    /// @inheritdoc IPaymaster
-    function postOp(
-        PostOpMode mode,
-        bytes calldata context,
-        uint256 actualGasCost
-    ) external override onlyEntryPoint {
-        _postOp(mode, context, actualGasCost);
-    }
-
     function _postOp(
         PostOpMode mode,
         bytes calldata context,
@@ -171,98 +268,15 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         }
     }
 
-    function getMEVPayInfo(
-        address provider,
-        UserOperation calldata userOp
-    ) external view returns (MEVPayInfo memory mevPayInfo) {
-        bytes4 selector = bytes4(userOp.callData);
-        require(
-            selector == IMEVBoostAccount.boostExecuteBatch.selector ||
-                selector == IMEVBoostAccount.boostExecute.selector,
-            "not a mev account"
-        );
-        IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
-            userOp.callData[4:],
-            (IMEVBoostAccount.MEVConfig)
-        );
-        mevPayInfo = MEVPayInfo(
-            provider,
-            userOp.boostHash(entryPoint),
-            mevConfig.minAmount,
-            ""
-        );
-    }
-
-    function getDeposit(address provider) external view returns (uint256) {
-        return balances[provider];
-    }
-
-    function deposit(address provider) external payable {
-        liability += msg.value;
-        balances[provider] += msg.value;
-        entryPoint.depositTo{value: msg.value}(address(this));
-    }
-
-    function withdrawTo(
-        address payable withdrawAddress,
-        uint256 amount
-    ) external {
-        liability -= amount;
-        balances[msg.sender] -= amount;
-        entryPoint.withdrawTo(withdrawAddress, amount);
-    }
-
-    function fetchLegacy() external onlyOwner returns (uint256 legacy) {
-        uint256 asset = entryPoint.balanceOf(address(this));
-        require(asset > liability, "asset should greater than liability");
-        legacy = asset - liability;
-        liability = asset;
-        balances[owner()] += legacy;
-    }
-
-    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return (interfaceId == type(IERC165).interfaceId ||
-            interfaceId == type(IMEVBoostPaymaster).interfaceId);
-    }
-
-    /**
-     * add stake for this paymaster.
-     * This method can also carry eth value to add to the current stake.
-     * @param unstakeDelaySec - the unstake delay for this paymaster. Can only be increased.
-     */
-    function addStake(uint32 unstakeDelaySec) external payable onlyOwner {
-        entryPoint.addStake{value: msg.value}(unstakeDelaySec);
-    }
-
-    /**
-     * unlock the stake, in order to withdraw it.
-     * The paymaster can't serve requests once unlocked, until it calls addStake again
-     */
-    function unlockStake() external onlyOwner {
-        entryPoint.unlockStake();
-    }
-
-    /**
-     * withdraw the entire paymaster's stake.
-     * stake must be unlocked first (and then wait for the unstakeDelay to be over)
-     * @param withdrawAddress the address to send withdrawn value.
-     */
-    function withdrawStake(address payable withdrawAddress) external onlyOwner {
-        entryPoint.withdrawStake(withdrawAddress);
-    }
-
-    function getMEVPayInfoHash(
-        MEVPayInfo memory mevPayInfo
-    ) public view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _internalMEVPayInfoHash(mevPayInfo),
-                    address(this),
-                    entryPoint,
-                    block.chainid
-                )
-            );
+    function _getGasPrice(
+        uint256 maxFeePerGas,
+        uint256 maxPriorityFeePerGas
+    ) internal view returns (uint256) {
+        if (maxFeePerGas == maxPriorityFeePerGas) {
+            //legacy mode (for networks that don't support basefee opcode)
+            return maxFeePerGas;
+        }
+        return _min(maxFeePerGas, maxPriorityFeePerGas + block.basefee);
     }
 
     function _internalMEVPayInfoHash(
@@ -287,17 +301,6 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         if (mevPayInfo.provider != hash.recover(mevPayInfo.signature))
             return SIG_VALIDATION_FAILED;
         return 0;
-    }
-
-    function _getGasPrice(
-        uint256 maxFeePerGas,
-        uint256 maxPriorityFeePerGas
-    ) internal view returns (uint256) {
-        if (maxFeePerGas == maxPriorityFeePerGas) {
-            //legacy mode (for networks that don't support basefee opcode)
-            return maxFeePerGas;
-        }
-        return _min(maxFeePerGas, maxPriorityFeePerGas + block.basefee);
     }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
