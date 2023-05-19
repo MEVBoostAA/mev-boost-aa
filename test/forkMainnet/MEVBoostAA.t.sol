@@ -5,14 +5,17 @@ import {Test} from "forge-std/Test.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IEntryPoint} from "../../contracts/interfaces/IEntryPoint.sol";
 import {UserOperation} from "../../contracts/interfaces/UserOperation.sol";
-import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
-import {MEVBoostPaymaster} from "../../contracts/MEVBoostPaymaster.sol";
+import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
+
+import {MEVPayInfoLib} from "../../contracts/libraries/MEVPayInfo.sol";
+import {MEVBoostPaymaster, MEVPayInfo} from "../../contracts/MEVBoostPaymaster.sol";
 import {MEVBoostAccount} from "../../contracts/MEVBoostAccount.sol";
-import {IMEVBoostAccount} from "../../contracts/interfaces/IMEVBoostAccount.sol";
+import {IMEVBoostAccount, MEVConfig} from "../../contracts/interfaces/IMEVBoostAccount.sol";
 import {MEVBoostAccountFactory} from "../../contracts/MEVBoostAccountFactory.sol";
 
 contract MEVBoostAATest is Test {
-    using MEVUserOperation for UserOperation;
+    using MEVUserOperationLib for UserOperation;
+    using MEVPayInfoLib for MEVPayInfo;
     using ECDSA for bytes32;
     address public constant entryPointAddr =
         0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
@@ -160,11 +163,10 @@ contract MEVBoostAATest is Test {
         uint256 _mevMinAmount,
         uint256 _transferAmount
     ) internal view returns (UserOperation memory userOp) {
-        IMEVBoostAccount.MEVConfig memory mevConfig = IMEVBoostAccount
-            .MEVConfig({
-                minAmount: _mevMinAmount,
-                selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
-            });
+        MEVConfig memory mevConfig = MEVConfig({
+            minAmount: _mevMinAmount,
+            selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
+        });
         bytes memory callData = abi.encodeCall(
             IMEVBoostAccount.boostExecute,
             (mevConfig, receiver, _transferAmount, "")
@@ -184,33 +186,34 @@ contract MEVBoostAATest is Test {
             signature: ""
         });
         bytes32 boostUserOpHash = userOp.boostHash(entryPoint);
-        userOp.signature = _getSignature(boostUserOpHash, ownerPrivateKey);
+        userOp.signature = _getSignature(
+            boostUserOpHash.toEthSignedMessageHash(),
+            ownerPrivateKey
+        );
     }
 
     function _attachPaymasterAndData(
         UserOperation memory userOp
     ) internal view {
         // use min mev amount
-        MEVBoostPaymaster.MEVPayInfo memory payInfo = mevBoostPaymaster
-            .getMEVPayInfo(searcher, userOp);
-
-        bytes32 payInfoHash = mevBoostPaymaster.getMEVPayInfoHash(payInfo);
-        payInfo.signature = _getSignature(payInfoHash, searcherPrivateKey);
+        MEVPayInfo memory payInfo = mevBoostPaymaster.getMEVPayInfo(
+            searcher,
+            userOp
+        );
+        bytes32 payInfoHash = payInfo.hash(mevBoostPaymaster.domainSeparator());
+        bytes memory signature = _getSignature(payInfoHash, searcherPrivateKey);
         bytes memory paymasterAndData = abi.encodePacked(
             address(mevBoostPaymaster),
-            abi.encode(payInfo)
+            abi.encode(payInfo, signature)
         );
         userOp.paymasterAndData = paymasterAndData;
     }
 
     function _getSignature(
-        bytes32 _hash,
-        uint256 _privateKey
+        bytes32 rawHash,
+        uint256 privateKey
     ) internal pure returns (bytes memory) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            _privateKey,
-            _hash.toEthSignedMessageHash()
-        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, rawHash);
         return abi.encodePacked(r, s, v);
     }
 }

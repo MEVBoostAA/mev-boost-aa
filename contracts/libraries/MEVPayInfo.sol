@@ -5,6 +5,9 @@ import {MEVPayInfo} from "../interfaces/IMEVBoostPaymaster.sol";
 
 // ERC-721
 library MEVPayInfoLib {
+    // 0x7b4ad49e744e0f10a22904f1b71cbacbf3378214679b649633f95729637095ad
+    bytes32 internal constant MEV_PAY_INFO_TYPE_HASH =
+        0x7b4ad49e744e0f10a22904f1b71cbacbf3378214679b649633f95729637095ad;
     string internal constant MEV_PAY_INFO_TYPE =
         "MEVPayInfo(address provider,bytes32 boostUserOpHash,uint256 amount)";
 
@@ -15,7 +18,7 @@ library MEVPayInfoLib {
         return
             keccak256(
                 abi.encodePacked(
-                    "\x19\x01",
+                    "\x19\x01", // ERC-191 Header
                     domainSeparator,
                     keccak256(
                         abi.encode(

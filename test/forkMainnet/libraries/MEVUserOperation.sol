@@ -8,7 +8,7 @@ import {UserOperation} from "../../../contracts/interfaces/UserOperation.sol";
 /**
  * Utility functions helpful when working with UserOperation structs.
  */
-library MEVUserOperation {
+library MEVUserOperationLib {
     function _internalUserBoostOpHash(
         UserOperation memory userOp
     ) internal pure returns (bytes32) {
