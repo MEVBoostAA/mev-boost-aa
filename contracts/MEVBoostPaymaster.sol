@@ -8,18 +8,28 @@ import {IMEVBoostPaymaster, MEVPayInfo} from "./interfaces/IMEVBoostPaymaster.so
 import {IPaymaster} from "./interfaces/IPaymaster.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
+import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
-import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
+import {MEVPayInfoLib} from "./libraries/MEVPayInfo.sol";
 
 contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperationLib for UserOperation;
+    using MEVPayInfoLib for MEVPayInfo;
+
     uint256 private constant SIG_VALIDATION_FAILED = 1;
     // must larger than real cost of postOP
     uint256 public constant MAX_GAS_OF_POST = 35000;
-    uint256 public liability;
+    string public constant EIP712_DOMAIN =
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
+    bytes32 public constant NAME_HASH = keccak256(bytes("MEVBoostPaymaster"));
+    bytes32 public constant VERSION_HASH = keccak256(bytes("v0"));
+
     IEntryPoint public immutable entryPoint;
+    bytes32 public immutable domainSeparator; // ERC-721
+
+    uint256 public liability;
     mapping(address => uint256) balances;
     mapping(bytes32 => MEVInfo) mevMapping;
 
@@ -37,6 +47,15 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
 
     constructor(IEntryPoint _entryPoint) {
         entryPoint = _entryPoint;
+        domainSeparator = keccak256(
+            abi.encode(
+                keccak256(bytes(EIP712_DOMAIN)),
+                NAME_HASH,
+                VERSION_HASH,
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     // solhint-disable-next-line no-empty-blocks
@@ -144,20 +163,6 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             interfaceId == type(IMEVBoostPaymaster).interfaceId);
     }
 
-    function getMEVPayInfoHash(
-        MEVPayInfo memory mevPayInfo
-    ) public view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _internalMEVPayInfoHash(mevPayInfo),
-                    address(this),
-                    entryPoint,
-                    block.chainid
-                )
-            );
-    }
-
     function _validatePaymasterUserOp(
         UserOperation calldata userOp,
         bytes32 userOpHash,
@@ -182,7 +187,9 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             "provider balance not enough"
         );
         balances[mevPayInfo.provider] -= totalCost;
-        validationData = _validateSignature(mevPayInfo, signature);
+        validationData = mevPayInfo.verify(domainSeparator, signature)
+            ? 0
+            : SIG_VALIDATION_FAILED;
         bytes4 selector = bytes4(userOp.callData);
         if (
             mevPayInfo.amount > 0 &&
@@ -275,31 +282,6 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             return maxFeePerGas;
         }
         return _min(maxFeePerGas, maxPriorityFeePerGas + block.basefee);
-    }
-
-    /// implement template method of BaseAccount
-    function _validateSignature(
-        MEVPayInfo memory mevPayInfo,
-        bytes memory signature
-    ) internal view returns (uint256 validationData) {
-        bytes32 mevPayInfoHash = getMEVPayInfoHash(mevPayInfo);
-        bytes32 hash = mevPayInfoHash.toEthSignedMessageHash();
-        if (mevPayInfo.provider != hash.recover(signature))
-            return SIG_VALIDATION_FAILED;
-        return 0;
-    }
-
-    function _internalMEVPayInfoHash(
-        MEVPayInfo memory mevPayInfo
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    mevPayInfo.provider,
-                    mevPayInfo.boostUserOpHash,
-                    mevPayInfo.amount
-                )
-            );
     }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
