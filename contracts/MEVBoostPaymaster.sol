@@ -9,12 +9,12 @@ import {IPaymaster} from "./interfaces/IPaymaster.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
-import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
+import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
 import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 
 contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
-    using MEVUserOperation for UserOperation;
+    using MEVUserOperationLib for UserOperation;
     uint256 private constant SIG_VALIDATION_FAILED = 1;
     // must larger than real cost of postOP
     uint256 public constant MAX_GAS_OF_POST = 35000;

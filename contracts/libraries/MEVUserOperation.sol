@@ -10,7 +10,7 @@ import {UserOperation, UserOperationLib} from "../interfaces/UserOperation.sol";
 /**
  * Utility functions helpful when working with UserOperation structs.
  */
-library MEVUserOperation {
+library MEVUserOperationLib {
     function pack(
         UserOperation calldata userOp
     ) internal pure returns (bytes memory ret) {

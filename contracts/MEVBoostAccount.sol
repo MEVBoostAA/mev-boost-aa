@@ -8,7 +8,7 @@ import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {IAccount} from "./interfaces/IAccount.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
-import {MEVUserOperation} from "./libraries/MEVUserOperation.sol";
+import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
 import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
@@ -27,7 +27,7 @@ contract MEVBoostAccount is
     Initializable
 {
     using ECDSA for bytes32;
-    using MEVUserOperation for UserOperation;
+    using MEVUserOperationLib for UserOperation;
 
     IEntryPoint private immutable _entryPoint;
     address public owner;
