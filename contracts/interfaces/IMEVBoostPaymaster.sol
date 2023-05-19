@@ -17,7 +17,6 @@ interface IMEVBoostPaymaster is IPaymaster {
         address provider;
         bytes32 boostUserOpHash;
         uint256 amount;
-        bytes signature;
     }
 
     function getMEVPayInfo(

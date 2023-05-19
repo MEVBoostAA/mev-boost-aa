@@ -131,8 +131,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         mevPayInfo = MEVPayInfo(
             provider,
             userOp.boostHash(entryPoint),
-            mevConfig.minAmount,
-            ""
+            mevConfig.minAmount
         );
     }
 
@@ -169,9 +168,9 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             "DepositPaymaster: gas too low for postOp"
         );
 
-        MEVPayInfo memory mevPayInfo = abi.decode(
+        (MEVPayInfo memory mevPayInfo, bytes memory signature) = abi.decode(
             userOp.paymasterAndData[20:],
-            (MEVPayInfo)
+            (MEVPayInfo, bytes)
         );
         require(
             mevPayInfo.boostUserOpHash == userOp.boostHash(entryPoint),
@@ -183,8 +182,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             "provider balance not enough"
         );
         balances[mevPayInfo.provider] -= totalCost;
-        bytes32 mevPayInfoHash = getMEVPayInfoHash(mevPayInfo);
-        validationData = _validateSignature(mevPayInfo, mevPayInfoHash);
+        validationData = _validateSignature(mevPayInfo, signature);
         bytes4 selector = bytes4(userOp.callData);
         if (
             mevPayInfo.amount > 0 &&
@@ -279,6 +277,18 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         return _min(maxFeePerGas, maxPriorityFeePerGas + block.basefee);
     }
 
+    /// implement template method of BaseAccount
+    function _validateSignature(
+        MEVPayInfo memory mevPayInfo,
+        bytes memory signature
+    ) internal view returns (uint256 validationData) {
+        bytes32 mevPayInfoHash = getMEVPayInfoHash(mevPayInfo);
+        bytes32 hash = mevPayInfoHash.toEthSignedMessageHash();
+        if (mevPayInfo.provider != hash.recover(signature))
+            return SIG_VALIDATION_FAILED;
+        return 0;
+    }
+
     function _internalMEVPayInfoHash(
         MEVPayInfo memory mevPayInfo
     ) internal pure returns (bytes32) {
@@ -290,17 +300,6 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
                     mevPayInfo.amount
                 )
             );
-    }
-
-    /// implement template method of BaseAccount
-    function _validateSignature(
-        MEVPayInfo memory mevPayInfo,
-        bytes32 mevPayInfoHash
-    ) internal pure returns (uint256 validationData) {
-        bytes32 hash = mevPayInfoHash.toEthSignedMessageHash();
-        if (mevPayInfo.provider != hash.recover(mevPayInfo.signature))
-            return SIG_VALIDATION_FAILED;
-        return 0;
     }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
