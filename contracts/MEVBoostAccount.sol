@@ -9,7 +9,7 @@ import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {IAccount} from "./interfaces/IAccount.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
-import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
+import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 

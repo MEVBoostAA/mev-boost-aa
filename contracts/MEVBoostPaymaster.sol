@@ -4,13 +4,13 @@ pragma solidity ^0.8.12;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IMEVBoostPaymaster} from "./interfaces/IMEVBoostPaymaster.sol";
+import {IMEVBoostPaymaster, MEVPayInfo} from "./interfaces/IMEVBoostPaymaster.sol";
 import {IPaymaster} from "./interfaces/IPaymaster.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
-import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
+import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
 
 contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
@@ -124,9 +124,9 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
                 selector == IMEVBoostAccount.boostExecute.selector,
             "not a mev account"
         );
-        IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
+        MEVConfig memory mevConfig = abi.decode(
             userOp.callData[4:],
-            (IMEVBoostAccount.MEVConfig)
+            (MEVConfig)
         );
         mevPayInfo = MEVPayInfo(
             provider,
@@ -189,9 +189,9 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             (selector == IMEVBoostAccount.boostExecuteBatch.selector ||
                 selector == IMEVBoostAccount.boostExecute.selector)
         ) {
-            IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
+            MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
-                (IMEVBoostAccount.MEVConfig)
+                (MEVConfig)
             );
             require(
                 mevPayInfo.amount >= mevConfig.minAmount,

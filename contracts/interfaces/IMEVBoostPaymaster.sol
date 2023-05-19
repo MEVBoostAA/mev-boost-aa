@@ -3,6 +3,12 @@ pragma solidity ^0.8.12;
 import {IPaymaster} from "./IPaymaster.sol";
 import {UserOperation} from "./UserOperation.sol";
 
+struct MEVPayInfo {
+    address provider;
+    bytes32 boostUserOpHash;
+    uint256 amount;
+}
+
 interface IMEVBoostPaymaster is IPaymaster {
     event SettleMEV(
         bytes32 indexed userOpHash,
@@ -12,12 +18,6 @@ interface IMEVBoostPaymaster is IPaymaster {
         uint256 expectedAmount,
         bool opSucceeded
     );
-
-    struct MEVPayInfo {
-        address provider;
-        bytes32 boostUserOpHash;
-        uint256 amount;
-    }
 
     function getMEVPayInfo(
         address provider,
