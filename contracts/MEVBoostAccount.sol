@@ -2,6 +2,7 @@
 pragma solidity ^0.8.12;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {BaseAccount} from "./abstracts/BaseAccount.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
@@ -20,6 +21,7 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
  *  has a single signer that can send requests through the entryPoint.
  */
 contract MEVBoostAccount is
+    IERC1271,
     IERC165,
     IMEVBoostAccount,
     BaseAccount,
@@ -137,6 +139,19 @@ contract MEVBoostAccount is
         _call(dest, value, data);
     }
 
+    function isValidSignature(
+        bytes32 hash,
+        bytes memory signature
+    ) external view returns (bytes4 magicValue) {
+        if (owner.code.length > 0) {
+            return IERC1271(owner).isValidSignature(hash, signature);
+        }
+        if (owner == hash.recover(signature)) {
+            return 0x1626ba7e; // EIP1271_MAGIC_VALUE
+        }
+        return 0xffffffff;
+    }
+
     function initialize(
         address anOwner,
         address anMEVBoostPaymaster
@@ -156,7 +171,8 @@ contract MEVBoostAccount is
     }
 
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return (interfaceId == type(IERC165).interfaceId ||
+        return (interfaceId == type(IERC1271).interfaceId ||
+            interfaceId == type(IERC165).interfaceId ||
             interfaceId == type(IMEVBoostAccount).interfaceId);
     }
 
