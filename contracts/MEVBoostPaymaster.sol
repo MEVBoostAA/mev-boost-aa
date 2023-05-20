@@ -18,7 +18,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     using MEVUserOperationLib for UserOperation;
     using MEVPayInfoLib for MEVPayInfo;
 
-    uint256 private constant SIG_VALIDATION_FAILED = 1;
+    uint256 public constant SIG_VALIDATION_FAILED = 1;
     // must larger than real cost of postOP
     uint256 public constant MAX_GAS_OF_POST = 40000;
     string public constant EIP712_DOMAIN =
@@ -30,8 +30,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     bytes32 public immutable domainSeparator; // ERC-721
 
     uint256 public liability;
-    mapping(address => uint256) balances;
-    mapping(bytes32 => MEVInfo) mevMapping;
+    mapping(address => uint256) public balances;
 
     struct MEVInfo {
         address provider;
