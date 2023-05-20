@@ -67,6 +67,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         uint256 maxCost
     )
         external
+        view
         override
         onlyEntryPoint
         returns (bytes memory context, uint256 validationData)
@@ -198,7 +199,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         UserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 maxCost
-    ) internal returns (bytes memory context, uint256 validationData) {
+    ) internal view returns (bytes memory context, uint256 validationData) {
         require(
             userOp.verificationGasLimit > MAX_GAS_OF_POST,
             "DepositPaymaster: gas too low for postOp"
