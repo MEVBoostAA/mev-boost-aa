@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IMEVBoostPaymaster, MEVPayInfo} from "./interfaces/IMEVBoostPaymaster.sol";
@@ -13,7 +13,7 @@ import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
 import {MEVPayInfoLib} from "./libraries/MEVPayInfo.sol";
 
-contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
+contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperationLib for UserOperation;
     using MEVPayInfoLib for MEVPayInfo;
@@ -190,9 +190,12 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
         return balances[provider];
     }
 
-    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return (interfaceId == type(IERC165).interfaceId ||
-            interfaceId == type(IMEVBoostPaymaster).interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165) returns (bool) {
+        return
+            interfaceId == type(IMEVBoostPaymaster).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     function _validatePaymasterUserOp(

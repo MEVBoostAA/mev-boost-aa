@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {BaseAccount} from "./abstracts/BaseAccount.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {IAccount} from "./interfaces/IAccount.sol";
+import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
-import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {BaseAccount} from "./abstracts/BaseAccount.sol";
+import {TokenCallbackHandler} from "./callback/TokenCallbackHandler.sol";
 
 /**
  * minimal account.
@@ -22,9 +23,10 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
  */
 contract MEVBoostAccount is
     IERC1271,
-    IERC165,
+    ERC165,
     IMEVBoostAccount,
     BaseAccount,
+    TokenCallbackHandler,
     UUPSUpgradeable,
     Initializable
 {
@@ -170,10 +172,19 @@ contract MEVBoostAccount is
         return userOp.boostHash(_entryPoint);
     }
 
-    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return (interfaceId == type(IERC1271).interfaceId ||
-            interfaceId == type(IERC165).interfaceId ||
-            interfaceId == type(IMEVBoostAccount).interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, TokenCallbackHandler)
+        returns (bool)
+    {
+        return
+            (interfaceId == type(IERC1271).interfaceId ||
+                interfaceId == type(IMEVBoostAccount).interfaceId) ||
+            super.supportsInterface(interfaceId);
     }
 
     function _initialize(
