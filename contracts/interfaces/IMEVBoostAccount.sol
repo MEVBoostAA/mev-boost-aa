@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 import {IAccount} from "./IAccount.sol";
+import {UserOperation} from "./UserOperation.sol";
 
 struct MEVConfig {
     uint256 minAmount;
@@ -21,4 +22,8 @@ interface IMEVBoostAccount is IAccount {
         uint256[] calldata value,
         bytes[] calldata func
     ) external;
+
+    function getBoostUserOpHash(
+        UserOperation calldata userOp
+    ) external view returns (bytes32 boostUserOpHash);
 }

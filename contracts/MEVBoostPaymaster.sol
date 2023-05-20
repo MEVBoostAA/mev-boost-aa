@@ -20,7 +20,7 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
 
     uint256 private constant SIG_VALIDATION_FAILED = 1;
     // must larger than real cost of postOP
-    uint256 public constant MAX_GAS_OF_POST = 35000;
+    uint256 public constant MAX_GAS_OF_POST = 40000;
     string public constant EIP712_DOMAIN =
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
     bytes32 public constant NAME_HASH = keccak256(bytes("MEVBoostPaymaster"));
@@ -135,26 +135,58 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
 
     function getMEVPayInfo(
         address provider,
+        bool requireSuccess,
         UserOperation calldata userOp
-    ) external view returns (MEVPayInfo memory mevPayInfo) {
+    )
+        external
+        view
+        returns (MEVPayInfo memory mevPayInfo, bool isMEVBoostUserOp)
+    {
+        bytes4 selector = bytes4(userOp.callData);
+        uint256 minMEVAmount;
+        if (
+            selector == IMEVBoostAccount.boostExecuteBatch.selector ||
+            selector == IMEVBoostAccount.boostExecute.selector
+        ) {
+            isMEVBoostUserOp = true;
+            MEVConfig memory mevConfig = abi.decode(
+                userOp.callData[4:],
+                (MEVConfig)
+            );
+            minMEVAmount = mevConfig.minAmount;
+        }
+
+        mevPayInfo = MEVPayInfo(
+            provider,
+            userOp.boostHash(entryPoint),
+            minMEVAmount,
+            requireSuccess
+        );
+    }
+
+    function getBoostUserOpHash(
+        UserOperation calldata userOp
+    ) external view returns (bytes32 boostUserOpHash) {
+        boostUserOpHash = userOp.boostHash(entryPoint);
+    }
+
+    function getMinMEVAmount(
+        UserOperation calldata userOp
+    ) external pure returns (uint256 minMEVAmount) {
         bytes4 selector = bytes4(userOp.callData);
         require(
             selector == IMEVBoostAccount.boostExecuteBatch.selector ||
                 selector == IMEVBoostAccount.boostExecute.selector,
-            "not a mev account"
+            "not a MEVBoostUserOp"
         );
         MEVConfig memory mevConfig = abi.decode(
             userOp.callData[4:],
             (MEVConfig)
         );
-        mevPayInfo = MEVPayInfo(
-            provider,
-            userOp.boostHash(entryPoint),
-            mevConfig.minAmount
-        );
+        minMEVAmount = mevConfig.minAmount;
     }
 
-    function getDeposit(address provider) external view returns (uint256) {
+    function getDeposit(address provider) public view returns (uint256) {
         return balances[provider];
     }
 
@@ -186,16 +218,14 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
             balances[mevPayInfo.provider] >= totalCost,
             "provider balance not enough"
         );
-        balances[mevPayInfo.provider] -= totalCost;
         validationData = mevPayInfo.verify(domainSeparator, signature)
             ? 0
             : SIG_VALIDATION_FAILED;
         bytes4 selector = bytes4(userOp.callData);
-        if (
-            mevPayInfo.amount > 0 &&
+        bool isBoostUserOp = mevPayInfo.amount > 0 &&
             (selector == IMEVBoostAccount.boostExecuteBatch.selector ||
-                selector == IMEVBoostAccount.boostExecute.selector)
-        ) {
+                selector == IMEVBoostAccount.boostExecute.selector);
+        if (isBoostUserOp) {
             MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
                 (MEVConfig)
@@ -209,22 +239,16 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
                 mevConfig.selfSponsoredAfter, // validUntil
                 0 // validAfter
             );
-
-            mevMapping[userOpHash] = MEVInfo(
-                mevPayInfo.provider,
-                userOp.sender,
-                mevPayInfo.amount,
-                true
-            );
         }
 
         return (
             abi.encode(
                 userOpHash,
-                mevPayInfo.boostUserOpHash,
+                mevPayInfo,
+                userOp.sender,
+                isBoostUserOp,
                 userOp.maxFeePerGas,
-                userOp.maxPriorityFeePerGas,
-                maxCost
+                userOp.maxPriorityFeePerGas
             ),
             validationData
         );
@@ -237,40 +261,37 @@ contract MEVBoostPaymaster is IERC165, IMEVBoostPaymaster, Ownable {
     ) internal {
         (
             bytes32 userOpHash,
-            bytes32 boostUserOpHash,
+            MEVPayInfo memory mevPayInfo,
+            address receiver,
+            bool isBoostUserOp,
             uint256 maxFeePerGas,
-            uint256 maxPriorityFeePerGas,
-            uint256 maxCost
-        ) = abi.decode(context, (bytes32, bytes32, uint256, uint256, uint256));
+            uint256 maxPriorityFeePerGas
+        ) = abi.decode(
+                context,
+                (bytes32, MEVPayInfo, address, bool, uint256, uint256)
+            );
         uint256 gasPrice = _getGasPrice(maxFeePerGas, maxPriorityFeePerGas);
-        uint256 totalCost = actualGasCost + MAX_GAS_OF_POST * gasPrice;
-        MEVInfo memory mevInfo = mevMapping[userOpHash];
-        liability -= totalCost;
-        balances[mevInfo.provider] += maxCost - totalCost;
-        if (mevInfo.enable) {
-            delete mevMapping[userOpHash];
-            if (mode == IPaymaster.PostOpMode.opSucceeded) {
-                balances[mevInfo.receiver] += mevInfo.amount;
-                emit SettleMEV(
-                    userOpHash,
-                    boostUserOpHash,
-                    mevInfo.provider,
-                    mevInfo.receiver,
-                    mevInfo.amount,
-                    true
-                );
-            } else {
-                balances[mevInfo.provider] += mevInfo.amount;
-                emit SettleMEV(
-                    userOpHash,
-                    boostUserOpHash,
-                    mevInfo.provider,
-                    mevInfo.receiver,
-                    mevInfo.amount,
-                    false
-                );
-            }
-        }
+        uint256 feeAmount = actualGasCost + MAX_GAS_OF_POST * gasPrice;
+        bool isUserOpSuccess = mode == IPaymaster.PostOpMode.opSucceeded;
+        uint256 mevAmount = mevPayInfo.requireSuccess && !isUserOpSuccess
+            ? 0 // only provide gas fee
+            : mevPayInfo.amount; // provide gas fee and mev fee
+        uint256 totalCost = mevAmount + feeAmount;
+        balances[mevPayInfo.provider] -= totalCost;
+        balances[receiver] += mevAmount;
+        liability -= feeAmount;
+
+        emit SettleUserOp(
+            userOpHash,
+            mevPayInfo.boostUserOpHash,
+            mevPayInfo.provider,
+            receiver,
+            mevPayInfo.amount,
+            mevAmount,
+            totalCost,
+            isBoostUserOp,
+            isUserOpSuccess
+        );
     }
 
     function _getGasPrice(

@@ -7,24 +7,21 @@ struct MEVPayInfo {
     address provider;
     bytes32 boostUserOpHash;
     uint256 amount;
+    bool requireSuccess;
 }
 
 interface IMEVBoostPaymaster is IPaymaster {
-    event SettleMEV(
+    event SettleUserOp(
         bytes32 indexed userOpHash,
         bytes32 indexed boostUserOpHash,
         address indexed provider,
-        address receiver,
-        uint256 expectedAmount,
+        address mevReceiver,
+        uint256 actualMevAmount,
+        uint256 expectedMEVAmount,
+        uint256 totalCost,
+        bool isBoostUserOp,
         bool opSucceeded
     );
-
-    function getMEVPayInfo(
-        address provider,
-        UserOperation calldata userOp
-    ) external view returns (MEVPayInfo memory);
-
-    function getDeposit(address provider) external view returns (uint256);
 
     function deposit(address provider) external payable;
 
@@ -34,4 +31,23 @@ interface IMEVBoostPaymaster is IPaymaster {
     ) external;
 
     function fetchLegacy() external returns (uint256 legacy);
+
+    function getDeposit(address provider) external view returns (uint256);
+
+    function getMEVPayInfo(
+        address provider,
+        bool requireSuccess,
+        UserOperation calldata userOp
+    )
+        external
+        view
+        returns (MEVPayInfo memory mevPayInfo, bool isMEVBoostUserOp);
+
+    function getBoostUserOpHash(
+        UserOperation calldata userOp
+    ) external view returns (bytes32 boostUserOpHash);
+
+    function getMinMEVAmount(
+        UserOperation calldata userOp
+    ) external pure returns (uint256 minMEVAmount);
 }

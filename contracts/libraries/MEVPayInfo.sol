@@ -5,9 +5,9 @@ import {MEVPayInfo} from "../interfaces/IMEVBoostPaymaster.sol";
 
 // ERC-721
 library MEVPayInfoLib {
-    // keccak256(bytes("MEVPayInfo(address provider,bytes32 boostUserOpHash,uint256 amount)"))
+    // keccak256(bytes("MEVPayInfo(address provider,bytes32 boostUserOpHash,uint256 amount,bool requireSuccess)"))
     bytes32 internal constant MEV_PAY_INFO_TYPE_HASH =
-        0x7b4ad49e744e0f10a22904f1b71cbacbf3378214679b649633f95729637095ad;
+        0xbaf3c30f9598aaef1e73edaec36220004099820792a36355f5dab3ee34addaf3;
 
     function hash(
         MEVPayInfo memory mevPayInfo,
@@ -23,7 +23,8 @@ library MEVPayInfoLib {
                             MEV_PAY_INFO_TYPE_HASH,
                             mevPayInfo.provider,
                             mevPayInfo.boostUserOpHash,
-                            mevPayInfo.amount
+                            mevPayInfo.amount,
+                            mevPayInfo.requireSuccess
                         )
                     )
                 )

@@ -196,10 +196,9 @@ contract MEVBoostAATest is Test {
         UserOperation memory userOp
     ) internal view {
         // use min mev amount
-        MEVPayInfo memory payInfo = mevBoostPaymaster.getMEVPayInfo(
-            searcher,
-            userOp
-        );
+        (MEVPayInfo memory payInfo, bool isMEVBoostUserOp) = mevBoostPaymaster
+            .getMEVPayInfo(searcher, false, userOp);
+        require(isMEVBoostUserOp, "not a MEVBoostUserOp");
         bytes32 payInfoHash = payInfo.hash(mevBoostPaymaster.domainSeparator());
         bytes memory signature = _getSignature(payInfoHash, searcherPrivateKey);
         bytes memory paymasterAndData = abi.encodePacked(
