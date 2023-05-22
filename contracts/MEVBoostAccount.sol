@@ -149,7 +149,7 @@ contract MEVBoostAccount is
             return IERC1271(owner).isValidSignature(hash, signature);
         }
         if (owner == hash.recover(signature)) {
-            return 0x1626ba7e; // EIP1271_MAGIC_VALUE
+            return IERC1271.isValidSignature.selector; // EIP1271_MAGIC_VALUE
         }
         return 0xffffffff;
     }
@@ -229,9 +229,15 @@ contract MEVBoostAccount is
         bytes32 userOpHash
     ) internal virtual override returns (uint256 validationData) {
         bytes32 hash = userOpHash.toEthSignedMessageHash();
-        if (owner != hash.recover(userOp.signature))
-            return SIG_VALIDATION_FAILED;
-        return 0;
+        if (owner.code.length > 0) {
+            return
+                IERC1271(owner).isValidSignature(hash, userOp.signature) ==
+                    IERC1271.isValidSignature.selector
+                    ? 0
+                    : SIG_VALIDATION_FAILED;
+        }
+        return
+            owner == hash.recover(userOp.signature) ? 0 : SIG_VALIDATION_FAILED;
     }
 
     function _authorizeUpgrade(
