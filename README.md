@@ -15,6 +15,9 @@ The project mainly has following advantages:
 - It provides a completely **decentralized** and **permisionless** MEV-Share solution.
 - Considering the existence of MEV, the project promotes the adoption of the ERC-4337 wallet by providing the build-in mev capture features and making transaction cost possibly less expensive than the EOA.
 
+## Weekly Update
+This project has released [weekly updates](https://mirror.xyz/0x07e5B116F4cc8739bc6e4BCc150E2E82b9cEBd19) since 2023.05.22.
+
 ## Value Redirection
 
 ### Current MEV Ecosystem
