@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
-
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -192,7 +192,7 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC165) returns (bool) {
+    ) public view virtual override(IERC165, ERC165) returns (bool) {
         return
             interfaceId == type(IMEVBoostPaymaster).interfaceId ||
             super.supportsInterface(interfaceId);

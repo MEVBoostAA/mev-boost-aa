@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
-
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -178,7 +178,7 @@ contract MEVBoostAccount is
         public
         view
         virtual
-        override(ERC165, TokenCallbackHandler)
+        override(IERC165, ERC165, TokenCallbackHandler)
         returns (bool)
     {
         return

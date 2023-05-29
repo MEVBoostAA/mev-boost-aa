@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IAccount} from "./IAccount.sol";
 import {UserOperation} from "./UserOperation.sol";
 
@@ -8,7 +9,7 @@ struct MEVConfig {
     uint48 selfSponsoredAfter;
 }
 
-interface IMEVBoostAccount is IAccount {
+interface IMEVBoostAccount is IERC165, IAccount {
     function boostExecute(
         MEVConfig calldata mevConfig,
         address dest,

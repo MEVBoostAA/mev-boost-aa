@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IPaymaster} from "./IPaymaster.sol";
 import {UserOperation} from "./UserOperation.sol";
 
@@ -10,7 +11,7 @@ struct MEVPayInfo {
     bool requireSuccess;
 }
 
-interface IMEVBoostPaymaster is IPaymaster {
+interface IMEVBoostPaymaster is IERC165, IPaymaster {
     event SettleUserOp(
         bytes32 indexed userOpHash,
         bytes32 indexed boostUserOpHash,
