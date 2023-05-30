@@ -4,11 +4,11 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IMEVBoostPaymaster, MEVPayInfo} from "./interfaces/IMEVBoostPaymaster.sol";
+import {IMEVBoostPaymaster} from "./interfaces/IMEVBoostPaymaster.sol";
 import {IPaymaster} from "./interfaces/IPaymaster.sol";
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
-import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
+import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
 import {MEVPayInfoLib} from "./libraries/MEVPayInfo.sol";
@@ -16,7 +16,7 @@ import {MEVPayInfoLib} from "./libraries/MEVPayInfo.sol";
 contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
     using ECDSA for bytes32;
     using MEVUserOperationLib for UserOperation;
-    using MEVPayInfoLib for MEVPayInfo;
+    using MEVPayInfoLib for IMEVBoostPaymaster.MEVPayInfo;
 
     uint256 public constant SIG_VALIDATION_FAILED = 1;
     // must larger than real cost of postOP
@@ -140,7 +140,10 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
     )
         external
         view
-        returns (MEVPayInfo memory mevPayInfo, bool isMEVBoostUserOp)
+        returns (
+            IMEVBoostPaymaster.MEVPayInfo memory mevPayInfo,
+            bool isMEVBoostUserOp
+        )
     {
         bytes4 selector = bytes4(userOp.callData);
         uint256 minMEVAmount;
@@ -149,14 +152,14 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
             selector == IMEVBoostAccount.boostExecute.selector
         ) {
             isMEVBoostUserOp = true;
-            MEVConfig memory mevConfig = abi.decode(
+            IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
-                (MEVConfig)
+                (IMEVBoostAccount.MEVConfig)
             );
             minMEVAmount = mevConfig.minAmount;
         }
 
-        mevPayInfo = MEVPayInfo(
+        mevPayInfo = IMEVBoostPaymaster.MEVPayInfo(
             provider,
             userOp.boostHash(entryPoint),
             minMEVAmount,
@@ -179,9 +182,9 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
                 selector == IMEVBoostAccount.boostExecute.selector,
             "not a MEVBoostUserOp"
         );
-        MEVConfig memory mevConfig = abi.decode(
+        IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
             userOp.callData[4:],
-            (MEVConfig)
+            (IMEVBoostAccount.MEVConfig)
         );
         minMEVAmount = mevConfig.minAmount;
     }
@@ -208,10 +211,13 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
             "DepositPaymaster: gas too low for postOp"
         );
 
-        (MEVPayInfo memory mevPayInfo, bytes memory signature) = abi.decode(
-            userOp.paymasterAndData[20:],
-            (MEVPayInfo, bytes)
-        );
+        (
+            IMEVBoostPaymaster.MEVPayInfo memory mevPayInfo,
+            bytes memory signature
+        ) = abi.decode(
+                userOp.paymasterAndData[20:],
+                (IMEVBoostPaymaster.MEVPayInfo, bytes)
+            );
         require(
             mevPayInfo.boostUserOpHash == userOp.boostHash(entryPoint),
             "invalid mev info"
@@ -229,9 +235,9 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
             (selector == IMEVBoostAccount.boostExecuteBatch.selector ||
                 selector == IMEVBoostAccount.boostExecute.selector);
         if (isBoostUserOp) {
-            MEVConfig memory mevConfig = abi.decode(
+            IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
-                (MEVConfig)
+                (IMEVBoostAccount.MEVConfig)
             );
             require(
                 mevPayInfo.amount >= mevConfig.minAmount,
@@ -264,14 +270,21 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
     ) internal {
         (
             bytes32 userOpHash,
-            MEVPayInfo memory mevPayInfo,
+            IMEVBoostPaymaster.MEVPayInfo memory mevPayInfo,
             address receiver,
             bool isBoostUserOp,
             uint256 maxFeePerGas,
             uint256 maxPriorityFeePerGas
         ) = abi.decode(
                 context,
-                (bytes32, MEVPayInfo, address, bool, uint256, uint256)
+                (
+                    bytes32,
+                    IMEVBoostPaymaster.MEVPayInfo,
+                    address,
+                    bool,
+                    uint256,
+                    uint256
+                )
             );
         uint256 gasPrice = _getGasPrice(maxFeePerGas, maxPriorityFeePerGas);
         uint256 feeAmount = actualGasCost + MAX_GAS_OF_POST * gasPrice;

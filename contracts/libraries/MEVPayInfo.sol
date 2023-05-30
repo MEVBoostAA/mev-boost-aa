@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
-import {MEVPayInfo} from "../interfaces/IMEVBoostPaymaster.sol";
+import {IMEVBoostPaymaster} from "../interfaces/IMEVBoostPaymaster.sol";
 
 // ERC-721
 library MEVPayInfoLib {
@@ -10,7 +10,7 @@ library MEVPayInfoLib {
         0xbaf3c30f9598aaef1e73edaec36220004099820792a36355f5dab3ee34addaf3;
 
     function hash(
-        MEVPayInfo memory mevPayInfo,
+        IMEVBoostPaymaster.MEVPayInfo memory mevPayInfo,
         bytes32 domainSeparator
     ) internal pure returns (bytes32) {
         return
@@ -32,7 +32,7 @@ library MEVPayInfoLib {
     }
 
     function verify(
-        MEVPayInfo memory mevPayInfo,
+        IMEVBoostPaymaster.MEVPayInfo memory mevPayInfo,
         bytes32 domainSeparator,
         bytes memory signature
     ) internal pure returns (bool) {

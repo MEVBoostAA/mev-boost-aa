@@ -4,12 +4,12 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IAccount} from "./IAccount.sol";
 import {UserOperation} from "./UserOperation.sol";
 
-struct MEVConfig {
-    uint256 minAmount;
-    uint48 selfSponsoredAfter;
-}
-
 interface IMEVBoostAccount is IERC165, IAccount {
+    struct MEVConfig {
+        uint256 minAmount;
+        uint48 selfSponsoredAfter;
+    }
+
     function boostExecute(
         MEVConfig calldata mevConfig,
         address dest,

@@ -9,7 +9,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeab
 import {UserOperation} from "./interfaces/UserOperation.sol";
 import {IEntryPoint} from "./interfaces/IEntryPoint.sol";
 import {IAccount} from "./interfaces/IAccount.sol";
-import {IMEVBoostAccount, MEVConfig} from "./interfaces/IMEVBoostAccount.sol";
+import {IMEVBoostAccount} from "./interfaces/IMEVBoostAccount.sol";
 import {_packValidationData} from "./libraries/Helpers.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
 import {BaseAccount} from "./abstracts/BaseAccount.sol";
@@ -85,9 +85,9 @@ contract MEVBoostAccount is
             selector == this.boostExecuteBatch.selector ||
             selector == this.boostExecute.selector
         ) {
-            MEVConfig memory mevConfig = abi.decode(
+            IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
-                (MEVConfig)
+                (IMEVBoostAccount.MEVConfig)
             );
             bytes32 userBootOpHash = userOp.boostHash(_entryPoint);
             validationData = _validateSignature(userOp, userBootOpHash);
@@ -122,7 +122,7 @@ contract MEVBoostAccount is
     }
 
     function boostExecuteBatch(
-        MEVConfig calldata mevConfig,
+        IMEVBoostAccount.MEVConfig calldata mevConfig,
         address[] calldata dest,
         uint256[] calldata value,
         bytes[] calldata data
@@ -132,7 +132,7 @@ contract MEVBoostAccount is
     }
 
     function boostExecute(
-        MEVConfig calldata mevConfig,
+        IMEVBoostAccount.MEVConfig calldata mevConfig,
         address dest,
         uint256 value,
         bytes calldata data

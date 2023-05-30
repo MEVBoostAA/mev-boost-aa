@@ -4,14 +4,14 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IPaymaster} from "./IPaymaster.sol";
 import {UserOperation} from "./UserOperation.sol";
 
-struct MEVPayInfo {
-    address provider;
-    bytes32 boostUserOpHash;
-    uint256 amount;
-    bool requireSuccess;
-}
-
 interface IMEVBoostPaymaster is IERC165, IPaymaster {
+    struct MEVPayInfo {
+        address provider;
+        bytes32 boostUserOpHash;
+        uint256 amount;
+        bool requireSuccess;
+    }
+
     event SettleUserOp(
         bytes32 indexed userOpHash,
         bytes32 indexed boostUserOpHash,

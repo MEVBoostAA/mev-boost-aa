@@ -8,14 +8,15 @@ import {UserOperation} from "../../contracts/interfaces/UserOperation.sol";
 import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
 
 import {MEVPayInfoLib} from "../../contracts/libraries/MEVPayInfo.sol";
-import {MEVBoostPaymaster, MEVPayInfo} from "../../contracts/MEVBoostPaymaster.sol";
+import {IMEVBoostAccount} from "../../contracts/interfaces/IMEVBoostAccount.sol";
+import {IMEVBoostPaymaster} from "../../contracts/interfaces/IMEVBoostPaymaster.sol";
+import {MEVBoostPaymaster} from "../../contracts/MEVBoostPaymaster.sol";
 import {MEVBoostAccount} from "../../contracts/MEVBoostAccount.sol";
-import {IMEVBoostAccount, MEVConfig} from "../../contracts/interfaces/IMEVBoostAccount.sol";
 import {MEVBoostAccountFactory} from "../../contracts/MEVBoostAccountFactory.sol";
 
 contract MEVBoostAATest is Test {
     using MEVUserOperationLib for UserOperation;
-    using MEVPayInfoLib for MEVPayInfo;
+    using MEVPayInfoLib for IMEVBoostPaymaster.MEVPayInfo;
     using ECDSA for bytes32;
     address public constant entryPointAddr =
         0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
@@ -163,10 +164,11 @@ contract MEVBoostAATest is Test {
         uint256 _mevMinAmount,
         uint256 _transferAmount
     ) internal view returns (UserOperation memory userOp) {
-        MEVConfig memory mevConfig = MEVConfig({
-            minAmount: _mevMinAmount,
-            selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
-        });
+        IMEVBoostAccount.MEVConfig memory mevConfig = IMEVBoostAccount
+            .MEVConfig({
+                minAmount: _mevMinAmount,
+                selfSponsoredAfter: uint48(block.timestamp + _waitInterval)
+            });
         bytes memory callData = abi.encodeCall(
             IMEVBoostAccount.boostExecute,
             (mevConfig, receiver, _transferAmount, "")
@@ -196,8 +198,10 @@ contract MEVBoostAATest is Test {
         UserOperation memory userOp
     ) internal view {
         // use min mev amount
-        (MEVPayInfo memory payInfo, bool isMEVBoostUserOp) = mevBoostPaymaster
-            .getMEVPayInfo(searcher, false, userOp);
+        (
+            IMEVBoostPaymaster.MEVPayInfo memory payInfo,
+            bool isMEVBoostUserOp
+        ) = mevBoostPaymaster.getMEVPayInfo(searcher, false, userOp);
         require(isMEVBoostUserOp, "not a MEVBoostUserOp");
         bytes32 payInfoHash = payInfo.hash(mevBoostPaymaster.domainSeparator());
         bytes memory signature = _getSignature(payInfoHash, searcherPrivateKey);
