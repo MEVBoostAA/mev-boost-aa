@@ -1,7 +1,7 @@
 {
   "name": "@mev-boost-aa/contracts",
   "description": "MEV Boost ERC-4337 Account Contracts",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "main": "./dist/index.js",
   "author": "doublespending",
   "license": "GPL-3.0",
