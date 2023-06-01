@@ -43,11 +43,6 @@ contract MEVBoostAccount is
         address indexed mevBoostPaymaster
     );
 
-    modifier onlyOwner() {
-        _onlyOwner();
-        _;
-    }
-
     modifier onlyEntryPoint() {
         require(msg.sender == address(_entryPoint), "Sender not EntryPoint");
         _;
@@ -56,7 +51,7 @@ contract MEVBoostAccount is
     modifier onlyEntryPointOrOwner() {
         require(
             msg.sender == address(_entryPoint) || msg.sender == owner,
-            "account: not Owner or EntryPoint"
+            "Sender not EntryPoint or Owner"
         );
         _;
     }
@@ -242,17 +237,8 @@ contract MEVBoostAccount is
 
     function _authorizeUpgrade(
         address newImplementation
-    ) internal view override {
+    ) internal view override onlyEntryPointOrOwner {
         (newImplementation);
-        _onlyOwner();
-    }
-
-    function _onlyOwner() internal view {
-        //directly from EOA owner, or through the account itself (which gets redirected through execute())
-        require(
-            msg.sender == owner || msg.sender == address(this),
-            "only owner"
-        );
     }
 
     function _isMevPaymaster(
