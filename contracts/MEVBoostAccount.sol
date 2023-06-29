@@ -214,7 +214,7 @@ contract MEVBoostAccount is
             "wrong array lengths"
         );
         for (uint256 i = 0; i < dest.length; i++) {
-            _call(dest[i], 0, data[i]);
+            _call(dest[i], value[i], data[i]);
         }
     }
 
