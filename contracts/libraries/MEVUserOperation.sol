@@ -11,6 +11,10 @@ import {UserOperation, UserOperationLib} from "../interfaces/UserOperation.sol";
  * Utility functions helpful when working with UserOperation structs.
  */
 library MEVUserOperationLib {
+    // keccak256(bytes(""))
+    bytes32 internal constant EMPTY_PAYMASTER_AND_DATA_HASH =
+        0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+
     function pack(
         UserOperation calldata userOp
     ) internal pure returns (bytes memory ret) {
@@ -35,7 +39,7 @@ library MEVUserOperationLib {
                 preVerificationGas,
                 maxFeePerGas,
                 maxPriorityFeePerGas,
-                bytes32(0)
+                EMPTY_PAYMASTER_AND_DATA_HASH
             );
     }
 

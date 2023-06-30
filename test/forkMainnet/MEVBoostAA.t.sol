@@ -5,7 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IEntryPoint} from "../../contracts/interfaces/IEntryPoint.sol";
 import {UserOperation} from "../../contracts/interfaces/UserOperation.sol";
-import {MEVUserOperationLib} from "./libraries/MEVUserOperation.sol";
+import {MEVUserOperationLibForTest} from "./libraries/MEVUserOperationForTest.sol";
+import {UserOperationLibForTest} from "./libraries/UserOperationForTest.sol";
 
 import {MEVPayInfoLib} from "../../contracts/libraries/MEVPayInfo.sol";
 import {IMEVBoostAccount} from "../../contracts/interfaces/IMEVBoostAccount.sol";
@@ -15,7 +16,8 @@ import {MEVBoostAccount} from "../../contracts/MEVBoostAccount.sol";
 import {MEVBoostAccountFactory} from "../../contracts/MEVBoostAccountFactory.sol";
 
 contract MEVBoostAATest is Test {
-    using MEVUserOperationLib for UserOperation;
+    using MEVUserOperationLibForTest for UserOperation;
+    using UserOperationLibForTest for UserOperation;
     using MEVPayInfoLib for IMEVBoostPaymaster.MEVPayInfo;
     using ECDSA for bytes32;
     address public constant entryPointAddr =
@@ -39,32 +41,23 @@ contract MEVBoostAATest is Test {
         _setUpMEVBoostAccount();
     }
 
-    function _setUpMEVBoostAccountFactory() internal {
-        mevAcountFactory = new MEVBoostAccountFactory(entryPoint);
-    }
-
-    function _setUpMEVPayMaster() internal {
-        mevBoostPaymaster = new MEVBoostPaymaster(entryPoint);
-        mevBoostPaymaster.deposit{value: 100 ether}(searcher);
-        uint256 deposit = mevBoostPaymaster.getDeposit(searcher);
-        assertEq(deposit, 100 ether);
-    }
-
-    function _setUpMEVBoostAccount() internal {
-        address expectedAccount = mevAcountFactory.getAddress(
-            owner,
-            address(mevBoostPaymaster),
-            salt
+    function testBoostHash() public {
+        uint256 waitInterval = 0;
+        uint256 mevMinAmount = 10;
+        uint256 amount = 1 ether;
+        UserOperation memory userOp = _buildUserOp(
+            waitInterval,
+            mevMinAmount,
+            amount
         );
-        mevBoostAccount = mevAcountFactory.createAccount(
-            owner,
-            address(mevBoostPaymaster),
-            salt
+        assertEq(
+            userOp.boostHash(entryPoint),
+            userOp.getUserOpHash(entryPoint)
         );
-        assertEq(expectedAccount, address(mevBoostAccount));
-        assertEq(mevBoostAccount.owner(), owner);
-        vm.deal(address(mevBoostAccount), 100 ether);
-        assertEq(address(mevBoostAccount).balance, 100 ether);
+        userOp.paymasterAndData = abi.encodePacked(address(mevBoostPaymaster));
+        assertFalse(
+            userOp.boostHash(entryPoint) == userOp.getUserOpHash(entryPoint)
+        );
     }
 
     function testSelfSponsoredExpiredMEVBoostAccount() public {
@@ -218,5 +211,33 @@ contract MEVBoostAATest is Test {
     ) internal pure returns (bytes memory) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, rawHash);
         return abi.encodePacked(r, s, v);
+    }
+
+    function _setUpMEVBoostAccountFactory() internal {
+        mevAcountFactory = new MEVBoostAccountFactory(entryPoint);
+    }
+
+    function _setUpMEVPayMaster() internal {
+        mevBoostPaymaster = new MEVBoostPaymaster(entryPoint);
+        mevBoostPaymaster.deposit{value: 100 ether}(searcher);
+        uint256 deposit = mevBoostPaymaster.getDeposit(searcher);
+        assertEq(deposit, 100 ether);
+    }
+
+    function _setUpMEVBoostAccount() internal {
+        address expectedAccount = mevAcountFactory.getAddress(
+            owner,
+            address(mevBoostPaymaster),
+            salt
+        );
+        mevBoostAccount = mevAcountFactory.createAccount(
+            owner,
+            address(mevBoostPaymaster),
+            salt
+        );
+        assertEq(expectedAccount, address(mevBoostAccount));
+        assertEq(mevBoostAccount.owner(), owner);
+        vm.deal(address(mevBoostAccount), 100 ether);
+        assertEq(address(mevBoostAccount).balance, 100 ether);
     }
 }

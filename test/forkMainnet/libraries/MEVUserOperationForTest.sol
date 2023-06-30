@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
-/* solhint-disable no-inline-assembly */
 import {IEntryPoint} from "../../../contracts/interfaces/IEntryPoint.sol";
 import {UserOperation} from "../../../contracts/interfaces/UserOperation.sol";
 
 /**
  * Utility functions helpful when working with UserOperation structs.
  */
-library MEVUserOperationLib {
+library MEVUserOperationLibForTest {
     function _internalUserBoostOpHash(
         UserOperation memory userOp
     ) internal pure returns (bytes32) {
@@ -24,7 +23,7 @@ library MEVUserOperationLib {
                     userOp.preVerificationGas,
                     userOp.maxFeePerGas,
                     userOp.maxPriorityFeePerGas,
-                    bytes32(0)
+                    keccak256(bytes(""))
                 )
             );
     }
@@ -37,7 +36,7 @@ library MEVUserOperationLib {
             keccak256(
                 abi.encode(
                     _internalUserBoostOpHash(userOp),
-                    entryPoint,
+                    address(entryPoint),
                     block.chainid
                 )
             );
