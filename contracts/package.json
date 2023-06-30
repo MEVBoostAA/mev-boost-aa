@@ -1,12 +1,12 @@
 {
   "name": "@mev-boost-aa/contracts",
   "description": "MEV Boost ERC-4337 Account Contracts",
-  "version": "3.1.4",
+  "version": "3.1.7",
   "main": "./dist/index.js",
   "author": "doublespending",
   "license": "GPL-3.0",
   "scripts": {
-    "prepack": "../scripts/prepack-contracts-package.sh",
+    "prepack": "npm run postpack && ../scripts/prepack-contracts-package.sh",
     "postpack": "../scripts/postpack-contracts-package.sh"
   },
   "repository": {
