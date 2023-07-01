@@ -231,18 +231,22 @@ contract MEVBoostPaymaster is ERC165, IMEVBoostPaymaster, Ownable {
             ? 0
             : SIG_VALIDATION_FAILED;
         bytes4 selector = bytes4(userOp.callData);
-        bool isBoostUserOp = mevPayInfo.amount > 0 &&
-            (selector == IMEVBoostAccount.boostExecuteBatch.selector ||
-                selector == IMEVBoostAccount.boostExecute.selector);
+        bool isBoostUserOp = (selector ==
+            IMEVBoostAccount.boostExecuteBatch.selector ||
+            selector == IMEVBoostAccount.boostExecute.selector);
         if (isBoostUserOp) {
             IMEVBoostAccount.MEVConfig memory mevConfig = abi.decode(
                 userOp.callData[4:],
                 (IMEVBoostAccount.MEVConfig)
             );
-            require(
-                mevPayInfo.amount >= mevConfig.minAmount,
-                "mev amount is not enough"
-            );
+            bool sigFail = validationData == SIG_VALIDATION_FAILED;
+            // show sigFail first instead of not enough mev amount
+            if (!sigFail) {
+                require(
+                    mevPayInfo.amount >= mevConfig.minAmount,
+                    "mev amount is not enough"
+                );
+            }
             validationData = _packValidationData(
                 validationData == SIG_VALIDATION_FAILED, // sigFailed
                 mevConfig.selfSponsoredAfter, // validUntil
